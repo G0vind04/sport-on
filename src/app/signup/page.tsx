@@ -51,9 +51,12 @@ export default function SignUp() {
         console.log("User signed up and profile created:", data.user);
         router.push("/player-creation");
       }
-    } catch (err: any) {
-      console.error("Sign-up error:", err.message);
-      setError(err.message);
+    } catch (err: unknown) {
+      // Changed 'any' to 'unknown'
+      const errorMessage =
+        err instanceof Error ? err.message : "An unexpected error occurred";
+      console.error("Sign-up error:", errorMessage);
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

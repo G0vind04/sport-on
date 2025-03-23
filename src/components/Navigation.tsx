@@ -101,7 +101,7 @@ export const Navigation = () => {
             {["Home", "Tournaments", "Courts", "My Matches"].map((item) => (
               <a
                 key={item}
-                href={`#${item.toLowerCase().replace(" ", "-")}`}
+                href={`${item.toLowerCase().replace(" ", "-")}`}
                 className="text-gray-700 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium"
               >
                 {item}
