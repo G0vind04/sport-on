@@ -10,7 +10,6 @@ import { Label } from "../../components/ui/label";
 import { Textarea } from "../../components/ui/textarea";
 import { AlertCircle, Plus, Search, Filter, Calendar } from "lucide-react";
 import { TournamentCard } from "../../components/TournamentCard";
-import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import {
   Dialog,
@@ -27,15 +26,15 @@ import {
   SelectValue,
 } from "../../components/ui/select";
 
-// Define Tournament type (consistent with Supabase and TournamentCard)
+// Define Tournament type
 type Tournament = {
   id: number;
   name: string;
   description: string;
   date: string;
   location: string;
-  registered_players: number; // Match Supabase column name
-  max_players: number; // Match Supabase column name
+  registered_players: number;
+  max_players: number;
   color: string;
   category: string;
   created_by?: string;
@@ -45,14 +44,12 @@ type Tournament = {
 export default function Tournaments() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [isSignedIn, setIsSignedIn] = useState(false);
 
-  // New tournament form data
   const [newTournament, setNewTournament] = useState({
     name: "",
     description: "",
@@ -64,7 +61,6 @@ export default function Tournaments() {
     city: "",
   });
 
-  // Check authentication status and fetch tournaments on mount
   useEffect(() => {
     const checkAuthAndFetch = async () => {
       const { data: userData, error: userError } =
@@ -86,7 +82,6 @@ export default function Tournaments() {
 
     checkAuthAndFetch();
 
-    // Subscribe to real-time updates
     const subscription = supabase
       .channel("tournaments-channel")
       .on(
@@ -110,13 +105,11 @@ export default function Tournaments() {
       )
       .subscribe();
 
-    // Cleanup subscription on unmount
     return () => {
       subscription.unsubscribe();
     };
   }, []);
 
-  // Handle new tournament submission
   const handleCreateTournament = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -129,22 +122,18 @@ export default function Tournaments() {
         throw new Error("You must be logged in to create a tournament");
       }
 
-      const { data, error: insertError } = await supabase
-        .from("tournaments")
-        .insert({
-          name: newTournament.name,
-          description: newTournament.description,
-          date: newTournament.date,
-          location: newTournament.location,
-          max_players: newTournament.maxPlayers,
-          registered_players: 0,
-          color: newTournament.color,
-          category: newTournament.category,
-          created_by: userData.user.id,
-          city: newTournament.city,
-        })
-        .select()
-        .single();
+      const { error: insertError } = await supabase.from("tournaments").insert({
+        name: newTournament.name,
+        description: newTournament.description,
+        date: newTournament.date,
+        location: newTournament.location,
+        max_players: newTournament.maxPlayers,
+        registered_players: 0,
+        color: newTournament.color,
+        category: newTournament.category,
+        created_by: userData.user.id,
+        city: newTournament.city,
+      });
 
       if (insertError) {
         throw new Error("Failed to create tournament: " + insertError.message);
@@ -171,7 +160,6 @@ export default function Tournaments() {
     }
   };
 
-  // Filter tournaments based on search and category
   const filteredTournaments = tournaments.filter((tournament) => {
     const matchesSearch =
       tournament.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -191,7 +179,6 @@ export default function Tournaments() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
       <Navigation />
-
       <div className="flex-grow container mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
           <div>
@@ -589,7 +576,6 @@ export default function Tournaments() {
           )}
         </div>
       </div>
-
       <Footer />
     </div>
   );

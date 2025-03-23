@@ -1,8 +1,7 @@
-// src/components/TournamentCard.tsx
-import { Button } from "./ui/button";
-import { Card } from "./ui/card";
-import { Badge } from "./ui/badge";
-import { Calendar, MapPin } from "lucide-react";
+"use client";
+
+import { useRouter } from "next/navigation";
+import { Card, CardContent } from "./ui/card";
 
 type Tournament = {
   id: number;
@@ -10,56 +9,47 @@ type Tournament = {
   description: string;
   date: string;
   location: string;
-  registeredPlayers: number;
-  maxPlayers: number;
+  registered_players: number;
+  max_players: number;
   color: string;
   category: string;
+  created_by?: string;
+  city: string | null;
 };
 
-export const TournamentCard = ({ tournament }: { tournament: Tournament }) => (
-  <Card className="group overflow-hidden bg-white dark:bg-gray-800 shadow-md hover:shadow-xl transition duration-300 border-0 rounded-xl">
-    <div className="relative">
-      <div
-        className="w-full h-48"
-        style={{ backgroundColor: tournament.color }}
-      />
-      <Badge className="absolute top-4 right-4 bg-indigo-600 hover:bg-indigo-700">
-        {tournament.category}
-      </Badge>
-    </div>
-    <div className="p-6">
-      <div className="flex items-center mb-3 text-gray-500 dark:text-gray-400 text-sm">
-        <Calendar className="w-4 h-4 mr-2" />
-        {tournament.date}
-      </div>
-      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-        {tournament.name}
-      </h3>
-      <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
-        {tournament.description}
-      </p>
-      <div className="flex justify-between items-center text-sm text-gray-500 dark:text-gray-400 mb-5">
-        <div className="flex items-center">
-          <MapPin className="w-4 h-4 mr-1" />
-          {tournament.location}
-        </div>
-        <div>
-          {tournament.registeredPlayers}/{tournament.maxPlayers} Players
-        </div>
-      </div>
-      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mb-6">
+export const TournamentCard = ({ tournament }: { tournament: Tournament }) => {
+  const router = useRouter();
+
+  const handleClick = () => {
+    router.push(`/tournaments/${tournament.id}`);
+  };
+
+  return (
+    <Card
+      className="border-0 shadow-md bg-white dark:bg-gray-800 rounded-xl overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
+      onClick={handleClick}
+    >
+      <CardContent className="p-6">
         <div
-          className="bg-indigo-600 h-1.5 rounded-full"
-          style={{
-            width: `${
-              (tournament.registeredPlayers / tournament.maxPlayers) * 100
-            }%`,
-          }}
-        ></div>
-      </div>
-      <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg py-2">
-        Register Now
-      </Button>
-    </div>
-  </Card>
-);
+          className="h-2 w-full mb-4"
+          style={{ backgroundColor: tournament.color }}
+        />
+        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+          {tournament.name}
+        </h3>
+        <p className="text-gray-600 dark:text-gray-300 mb-2">
+          {tournament.description}
+        </p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          {tournament.date} • {tournament.location}, {tournament.city || "N/A"}
+        </p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          Category: {tournament.category}
+        </p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          Players: {tournament.registered_players}/{tournament.max_players}
+        </p>
+      </CardContent>
+    </Card>
+  );
+};
