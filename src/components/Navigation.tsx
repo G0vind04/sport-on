@@ -5,25 +5,34 @@ import { supabase } from "../lib/supabase";
 import { Button } from "./ui/button";
 import Image from "next/image";
 import Link from "next/link";
+import { User } from "@supabase/supabase-js";
+
+// Define the shape of the profile data
+interface UserProfile {
+  name: string;
+  profile_pic?: string;
+}
 
 export const Navigation = () => {
-  const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState<{
-    name: string;
-    profile_pic?: string;
-  } | null>(null);
+  // State to hold the authenticated user
+  const [user, setUser] = useState<User | null>(null);
+  // State to hold the user's profile information
+  const [profile, setProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {
+    // Function to fetch the authenticated user and their profile
     const fetchUser = async () => {
       const {
         data: { user },
         error,
       } = await supabase.auth.getUser();
+
       if (error || !user) {
         setUser(null);
         setProfile(null);
         return;
       }
+
       setUser(user);
 
       const { data: profileData, error: profileError } = await supabase
@@ -41,16 +50,22 @@ export const Navigation = () => {
     };
 
     fetchUser();
+
     const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN") fetchUser();
-      else if (event === "SIGNED_OUT") {
+      if (event === "SIGNED_IN") {
+        fetchUser();
+      } else if (event === "SIGNED_OUT") {
         setUser(null);
         setProfile(null);
       }
     });
-    return () => authListener.subscription.unsubscribe();
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
+  // Function to handle user logout
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
