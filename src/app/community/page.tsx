@@ -48,21 +48,20 @@ export default function Community() {
         if (profilesError) throw new Error(profilesError.message);
 
         // Map posts with profile data
-        const transformedPosts =
-          postsData?.map((post) => {
-            const profile = profilesData?.find((p) => p.id === post.user_id);
-            return {
-              id: post.id,
-              user_id: post.user_id,
-              content: post.content,
-              image: post.image || null,
-              created_at: post.created_at,
-              user_name: profile?.name || "Anonymous",
-              user_avatar: profile?.avatar_url || null,
-            };
-          }) || [];
+        const transformedPosts = postsData?.map((post) => {
+          const profile = profilesData?.find((p) => p.id === post.user_id);
+          return {
+            id: post.id,
+            user_id: post.user_id,
+            content: post.content,
+            image: post.image || null,
+            created_at: post.created_at,
+            user_name: profile?.name || "Anonymous",
+            user_avatar: profile?.avatar_url || null,
+          };
+        }) || [];
 
-        console.log("Fetched posts with profiles:", transformedPosts);
+        console.log("Fetched initial posts with profiles:", transformedPosts);
         setPosts(transformedPosts);
       } catch (err) {
         const errorMessage =
@@ -83,6 +82,8 @@ export default function Community() {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "posts" },
         async (payload) => {
+          console.log("Realtime event received:", payload);
+
           const newPost = payload.new as {
             id: number;
             user_id: string;
@@ -100,6 +101,8 @@ export default function Community() {
 
           if (profileError) {
             console.error("Profile fetch error:", profileError.message);
+          } else {
+            console.log("Fetched profile for new post:", profileData);
           }
 
           const enrichedPost: Post = {
@@ -108,13 +111,24 @@ export default function Community() {
             user_avatar: profileData?.avatar_url || null,
           };
 
-          console.log("New post received:", enrichedPost);
+          console.log("Adding new post to state:", enrichedPost);
           setPosts((currentPosts) => [enrichedPost, ...currentPosts]);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log("Subscription status:", status);
+        if (status === "SUBSCRIBED") {
+          console.log("Successfully subscribed to real-time updates for posts");
+        } else if (status === "CLOSED") {
+          console.log("Subscription closed");
+        } else if (status === "CHANNEL_ERROR") {
+          console.error("Channel error occurred");
+        }
+      });
 
+    // Cleanup subscription on unmount
     return () => {
+      console.log("Unsubscribing from real-time updates");
       subscription.unsubscribe();
     };
   }, []);
@@ -131,8 +145,7 @@ export default function Community() {
     }
 
     try {
-      const { data: userData, error: userError } =
-        await supabase.auth.getUser();
+      const { data: userData, error: userError } = await supabase.auth.getUser();
       if (userError || !userData.user) {
         throw new Error("You must be logged in to post");
       }
@@ -259,9 +272,7 @@ export default function Community() {
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                 />
               </svg>
-              <p className="mt-4 text-gray-600 dark:text-gray-300">
-                Loading posts...
-              </p>
+              <p className="mt-4 text-gray-600 dark:text-gray-300">Loading posts...</p>
             </div>
           ) : posts.length === 0 ? (
             <Card className="border-0 shadow-lg bg-white dark:bg-gray-800 rounded-xl overflow-hidden">

@@ -25,13 +25,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../components/ui/select";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 // Define Tournament type
 type Tournament = {
   id: number;
   name: string;
   description: string;
-  date: string;
+  date: string; // Stored as "MMMM d, yyyy" (e.g., "April 15, 2025")
   location: string;
   registered_players: number;
   max_players: number;
@@ -53,7 +55,7 @@ export default function Tournaments() {
   const [newTournament, setNewTournament] = useState({
     name: "",
     description: "",
-    date: "",
+    date: "", // Stored as "MMMM d, yyyy" (e.g., "April 15, 2025")
     location: "",
     maxPlayers: 32,
     category: "Singles",
@@ -125,7 +127,7 @@ export default function Tournaments() {
       const { error: insertError } = await supabase.from("tournaments").insert({
         name: newTournament.name,
         description: newTournament.description,
-        date: newTournament.date,
+        date: newTournament.date, // Stored as "April 15, 2025"
         location: newTournament.location,
         max_players: newTournament.maxPlayers,
         registered_players: 0,
@@ -175,6 +177,20 @@ export default function Tournaments() {
 
     return matchesSearch && matchesCategory;
   });
+
+  const formatDate = (date: Date) => {
+    return new Intl.DateTimeFormat("en-US", {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    }).format(date);
+  };
+
+  const parseDate = (dateString: string): Date | null => {
+    if (!dateString) return null;
+    const date = new Date(dateString);
+    return isNaN(date.getTime()) ? null : date;
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
@@ -257,35 +273,36 @@ export default function Tournaments() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="date"
-                        className="text-gray-700 dark:text-gray-200 font-medium"
-                      >
-                        Date
-                      </Label>
-                      <div className="relative">
-                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                          <Calendar className="w-5 h-5" />
-                        </div>
-                        <Input
-                          id="date"
-                          type="text"
-                          value={newTournament.date}
-                          onChange={(e) =>
-                            setNewTournament({
-                              ...newTournament,
-                              date: e.target.value,
-                            })
-                          }
-                          placeholder="e.g., April 15, 2025"
-                          className="pl-10 bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 rounded-lg"
-                          required
-                        />
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="date"
+                      className="text-gray-700 dark:text-gray-200 font-medium"
+                    >
+                      Date
+                    </Label>
+                    <div className="relative">
+                      <DatePicker
+                        id="date"
+                        selected={parseDate(newTournament.date)}
+                        onChange={(date: Date | null) =>
+                          setNewTournament({
+                            ...newTournament,
+                            date: date ? formatDate(date) : "",
+                          })
+                        }
+                        dateFormat="MMMM d, yyyy" // Display format
+                        placeholderText="Select a date (e.g., April 15, 2025)"
+                        className="w-full pl-10 p-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 dark:text-white"
+                        required
+                        showPopperArrow={false}
+                      />
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                        <Calendar className="w-5 h-5" />
                       </div>
                     </div>
+                  </div>
 
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label
                         htmlFor="location"
@@ -307,28 +324,28 @@ export default function Tournaments() {
                         required
                       />
                     </div>
-                  </div>
 
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="city"
-                      className="text-gray-700 dark:text-gray-200 font-medium"
-                    >
-                      City
-                    </Label>
-                    <Input
-                      id="city"
-                      value={newTournament.city}
-                      onChange={(e) =>
-                        setNewTournament({
-                          ...newTournament,
-                          city: e.target.value,
-                        })
-                      }
-                      placeholder="e.g., New York"
-                      className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 rounded-lg"
-                      required
-                    />
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="city"
+                        className="text-gray-700 dark:text-gray-200 font-medium"
+                      >
+                        City
+                      </Label>
+                      <Input
+                        id="city"
+                        value={newTournament.city}
+                        onChange={(e) =>
+                          setNewTournament({
+                            ...newTournament,
+                            city: e.target.value,
+                          })
+                        }
+                        placeholder="e.g., New York"
+                        className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 rounded-lg"
+                        required
+                      />
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -347,7 +364,7 @@ export default function Tournaments() {
                         onChange={(e) =>
                           setNewTournament({
                             ...newTournament,
-                            maxPlayers: parseInt(e.target.value),
+                            maxPlayers: parseInt(e.target.value) || 32,
                           })
                         }
                         className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 rounded-lg"
