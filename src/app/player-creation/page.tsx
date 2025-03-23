@@ -10,6 +10,7 @@ import { Card, CardContent } from "../../components/ui/card";
 import { Label } from "../../components/ui/label";
 import { Camera, ArrowRight, AlertCircle } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image"; // Import next/image
 
 export default function PlayerCreation() {
   const [file, setFile] = useState<File | null>(null);
@@ -55,7 +56,7 @@ export default function PlayerCreation() {
     try {
       // Step 1: Upload file to storage
       const filePath = `${userData.user.id}/${file.name}`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage // Remove unused uploadData
         .from("profile-pics")
         .upload(filePath, file, { upsert: true });
 
@@ -79,9 +80,12 @@ export default function PlayerCreation() {
       }
 
       router.push("/");
-    } catch (err: any) {
-      console.error("Profile creation error:", err.message);
-      setError(err.message);
+    } catch (err: unknown) {
+      // Replace 'any' with 'unknown'
+      const errorMessage =
+        err instanceof Error ? err.message : "An unexpected error occurred";
+      console.error("Profile creation error:", errorMessage);
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -123,9 +127,11 @@ export default function PlayerCreation() {
                   {previewUrl ? (
                     <div className="flex flex-col items-center gap-4">
                       <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-indigo-100 dark:border-indigo-900 shadow-md">
-                        <img
+                        <Image // Replace <img> with <Image>
                           src={previewUrl}
                           alt="Profile preview"
+                          width={128} // Specify width
+                          height={128} // Specify height
                           className="w-full h-full object-cover"
                         />
                       </div>
