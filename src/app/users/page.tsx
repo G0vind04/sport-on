@@ -1,4 +1,3 @@
-// src/app/users/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -8,15 +7,19 @@ import { Footer } from "../../components/Footer";
 import { Badge } from "../../components/ui/badge";
 import { User } from "lucide-react";
 import Image from "next/image";
+import { Input } from "../../components/ui/input";
 
 type Profile = {
   id: string;
   name: string;
-  avatar_url?: string; // Optional, as some users might not have an avatar
+  avatar_url?: string;
+  created_at?: string;
 };
 
 export default function UsersPage() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [filteredProfiles, setFilteredProfiles] = useState<Profile[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -25,25 +28,18 @@ export default function UsersPage() {
       try {
         const { data, error } = await supabase
           .from("profiles")
-          .select("id, name, avatar_url")
-          .order("name", { ascending: true });
+          .select("id, name, avatar_url, created_at")
+          .order("created_at", { ascending: false });
 
-        if (error) {
+        if (error)
           throw new Error("Failed to fetch profiles: " + error.message);
-        }
 
-        console.log("Fetched profiles:", data); // Debug: Check raw data
-
-        if (data) {
-          setProfiles(data);
-        } else {
-          setProfiles([]);
-        }
+        setProfiles(data || []);
+        setFilteredProfiles(data || []);
       } catch (err: unknown) {
-        const errorMessage =
-          err instanceof Error ? err.message : "An unexpected error occurred";
-        console.error(errorMessage);
-        setError(errorMessage);
+        setError(
+          err instanceof Error ? err.message : "An unexpected error occurred"
+        );
       } finally {
         setLoading(false);
       }
@@ -52,80 +48,98 @@ export default function UsersPage() {
     fetchProfiles();
   }, []);
 
+  useEffect(() => {
+    setFilteredProfiles(
+      profiles.filter((profile) =>
+        profile.name.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    );
+  }, [searchQuery, profiles]);
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <p className="text-gray-600 dark:text-gray-300">Loading users...</p>
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-white to-gray-100 dark:from-gray-900 dark:to-gray-800">
+        <p className="text-lg text-gray-700 dark:text-gray-300 animate-pulse">
+          Loading users...
+        </p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <p className="text-red-600 dark:text-red-300">{error}</p>
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-red-100 to-white dark:from-gray-900 dark:to-gray-800">
+        <p className="text-lg text-red-600 dark:text-red-400">{error}</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 flex flex-col">
       <Navigation />
-      <div className="flex-grow container mx-auto px-4 py-8">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
-            Discover Users
-          </h1>
-          {profiles.length === 0 ? (
-            <p className="text-gray-600 dark:text-gray-300">
-              No users found in the profiles list.
+
+      <div className="flex-grow container mx-auto px-6 py-10">
+        <h1 className="text-4xl font-bold text-gray-900 dark:text-white text-center">
+          Discover Users
+        </h1>
+
+        <div className="max-w-xl mx-auto mt-6">
+          <Input
+            type="text"
+            placeholder="Search users..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 px-4 py-3 rounded-lg shadow-md focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-600"
+          />
+        </div>
+
+        <div className="mt-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+          {filteredProfiles.length === 0 ? (
+            <p className="text-gray-700 dark:text-gray-300 text-center text-lg">
+              {searchQuery ? "No matching users found." : "No users available."}
             </p>
           ) : (
-            <ul className="space-y-4">
-              {profiles.map((profile) => (
-                <li
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 mt-6">
+              {filteredProfiles.map((profile) => (
+                <div
                   key={profile.id}
-                  className="flex items-center gap-3 text-gray-700 dark:text-gray-300"
+                  className="group flex flex-col items-center p-5 bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-xl shadow-md transition transform hover:scale-105 hover:shadow-2xl"
                 >
-                  <div className="flex-shrink-0 w-10 h-10 relative">
+                  <div className="relative w-16 h-16">
                     {profile.avatar_url ? (
                       <Image
                         src={profile.avatar_url}
                         alt={`${profile.name}'s avatar`}
-                        width={40}
-                        height={40}
-                        className="rounded-full object-cover w-full h-full"
+                        width={64}
+                        height={64}
+                        className="rounded-full object-cover w-full h-full border-2 border-gray-300 dark:border-gray-600"
                         onError={(e) => {
-                          const target = e.currentTarget;
-                          const nextSibling =
-                            target.nextSibling as HTMLElement | null;
-                          target.style.display = "none";
-                          if (nextSibling) {
-                            nextSibling.style.display = "flex";
-                          }
+                          e.currentTarget.style.display = "none";
+                          const nextSibling = e.currentTarget
+                            .nextSibling as HTMLElement | null;
+                          if (nextSibling) nextSibling.style.display = "flex";
                         }}
                       />
                     ) : null}
                     <span
                       className={`${
                         profile.avatar_url ? "hidden" : "flex"
-                      } absolute inset-0 items-center justify-center w-full h-full rounded-full bg-gray-200 dark:bg-gray-700`}
+                      } absolute inset-0 items-center justify-center w-full h-full rounded-full bg-gray-300 dark:bg-gray-700`}
                     >
-                      <User className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                      <User className="w-8 h-8 text-gray-500 dark:text-gray-400" />
                     </span>
                   </div>
-                  <Badge
-                    variant="secondary"
-                    className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700"
-                  >
+
+                  <Badge className="mt-3 px-4 text-black py-2 text-lg bg-gray-200 dark:bg-gray-600 dark:text-gray-300 rounded-full shadow-sm">
                     {profile.name}
                   </Badge>
-                </li>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
         </div>
       </div>
+
       <Footer />
     </div>
   );
