@@ -9,7 +9,7 @@ import { Navigation } from "../../components/Navigation";
 import { Footer } from "../../components/Footer";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
-import { MapPin, Clock, User, Map } from "lucide-react";
+import { MapPin, Clock, User } from "lucide-react";
 
 type User = {
   id: string;

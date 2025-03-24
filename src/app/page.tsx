@@ -1,4 +1,5 @@
-// src/app/page.tsx
+"use client"; 
+
 import { FC } from "react";
 import { Navigation } from "../components/Navigation";
 import { HeroSection } from "../components/HeroSection";
@@ -59,6 +60,9 @@ const HomePage: FC = () => {
       color: "#2B6CB0",
       rating: 4.8,
       reviews: 124,
+      images: [
+        "https://lcemayxfkiqvquxxqaje.supabase.co/storage/v1/object/public/court-images/ec7daf4c-a924-40cb-986c-412d0c4f717b/1742818168301--a-simple--2d-yellow-star-icon-on-a-dark-purple-ba.png",
+      ], // Added images field
     },
     {
       id: 2,
@@ -70,6 +74,9 @@ const HomePage: FC = () => {
       color: "#9F7AEA",
       rating: 4.5,
       reviews: 86,
+      images: [
+        "https://lcemayxfkiqvquxxqaje.supabase.co/storage/v1/object/public/court-images/ec7daf4c-a924-40cb-986c-412d0c4f717b/1742818168301--a-simple--2d-yellow-star-icon-on-a-dark-purple-ba.png",
+      ], // Added images field
     },
   ];
 
