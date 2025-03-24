@@ -2,16 +2,26 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
-import Image from "next/image"; // Import Image for optimized image rendering
+import { useParams, useRouter } from "next/navigation";
+import Image from "next/image";
 import { supabase } from "../../../lib/supabase";
 import { Navigation } from "../../../components/Navigation";
 import { Footer } from "../../../components/Footer";
 import { Button } from "../../../components/ui/button";
 import { Badge } from "../../../components/ui/badge";
-import { MapPin, Clock, Phone, Trash2 } from "lucide-react";
+import { Input } from "../../../components/ui/input";
+import { Label } from "../../../components/ui/label";
+import { Textarea } from "../../../components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../../../components/ui/dialog";
+import { MapPin, Clock, Phone, Trash2, AlertCircle } from "lucide-react";
 
-// Define Court type (consistent with Courts.tsx and CourtCard.tsx)
+// Define Court type
 type Court = {
   id: number;
   name: string;
@@ -26,15 +36,21 @@ type Court = {
   city?: string;
   contactNumber?: string;
   created_by?: string;
-  images: string[]; // New field for image URLs
+  images: string[];
 };
 
+// Extend type for edit form to include newImageFile
+type EditCourt = Partial<Court> & { newImageFile?: File | null };
+
 export default function CourtOverview() {
-  const { id } = useParams(); // Get the dynamic id from the URL
+  const { id } = useParams();
+  const router = useRouter();
   const [court, setCourt] = useState<Court | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null); // Track current user ID
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editCourt, setEditCourt] = useState<EditCourt>({});
 
   useEffect(() => {
     const fetchCourtAndUser = async () => {
@@ -45,7 +61,7 @@ export default function CourtOverview() {
         if (userError) {
           console.error("Error fetching user:", userError.message);
         } else if (userData.user) {
-          setCurrentUserId(userData.user.id); // Set current user's ID
+          setCurrentUserId(userData.user.id);
         }
 
         // Fetch court data
@@ -53,7 +69,7 @@ export default function CourtOverview() {
           .from("courts")
           .select("*")
           .eq("id", id)
-          .single(); // Fetch a single row by id
+          .single();
 
         if (error) {
           throw new Error("Failed to fetch court: " + error.message);
@@ -63,7 +79,6 @@ export default function CourtOverview() {
           throw new Error("Court not found");
         }
 
-        // Transform Supabase data to match Court type
         const courtData: Court = {
           id: data.id,
           name: data.name,
@@ -78,10 +93,11 @@ export default function CourtOverview() {
           city: data.city,
           contactNumber: data.contact_number,
           created_by: data.created_by,
-          images: data.images || [], // Include images
+          images: data.images || [],
         };
 
         setCourt(courtData);
+        setEditCourt(courtData); // Initialize edit form with current data
       } catch (err: unknown) {
         const errorMessage =
           err instanceof Error ? err.message : "An unexpected error occurred";
@@ -105,19 +121,103 @@ export default function CourtOverview() {
         .from("courts")
         .delete()
         .eq("id", court.id)
-        .eq("created_by", currentUserId); // Ensure only the creator can delete
+        .eq("created_by", currentUserId);
 
       if (error) {
         throw new Error("Failed to delete court: " + error.message);
       }
 
-      // Redirect to /courts after deletion
-      window.location.href = "/courts";
+      router.push("/courts");
     } catch (err: unknown) {
       const errorMessage =
         err instanceof Error ? err.message : "An unexpected error occurred";
       console.error(errorMessage);
       setError(errorMessage);
+    }
+  };
+
+  const handleEditCourt = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    // Validate required fields
+    if (!editCourt.name) {
+      setError("Court name is required.");
+      setLoading(false);
+      return;
+    }
+    if (!editCourt.location) {
+      setError("Court location is required.");
+      setLoading(false);
+      return;
+    }
+    if (!editCourt.pricePerHour) {
+      setError("Price per hour is required.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      let imageUrl = editCourt.images?.[0] || court!.images[0] || "";
+      if (editCourt.newImageFile) {
+        const fileExt = editCourt.newImageFile.name.split(".").pop();
+        const fileName = `${Date.now()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from("court-images") // Adjust bucket name as needed
+          .upload(fileName, editCourt.newImageFile);
+
+        if (uploadError) {
+          throw new Error("Failed to upload image: " + uploadError.message);
+        }
+
+        const { data: urlData } = supabase.storage
+          .from("court-images")
+          .getPublicUrl(fileName);
+        imageUrl = urlData.publicUrl;
+      }
+
+      const updatedData: Court = {
+        id: court!.id,
+        name: editCourt.name || court!.name,
+        location: editCourt.location || court!.location,
+        availableTimes: editCourt.availableTimes || court!.availableTimes,
+        amenities: editCourt.amenities || court!.amenities,
+        pricePerHour: editCourt.pricePerHour || court!.pricePerHour,
+        color: editCourt.color || court!.color,
+        rating: court!.rating, // Keep unchanged
+        reviews: court!.reviews, // Keep unchanged
+        description: editCourt.description || court!.description,
+        city: editCourt.city !== undefined ? editCourt.city : court!.city,
+        contactNumber:
+          editCourt.contactNumber !== undefined
+            ? editCourt.contactNumber
+            : court!.contactNumber,
+        created_by: court!.created_by,
+        images: imageUrl ? [imageUrl] : editCourt.images || court!.images,
+      };
+
+      const { error: updateError } = await supabase
+        .from("courts")
+        .update(updatedData)
+        .eq("id", court!.id)
+        .eq("created_by", currentUserId); // Ensure only creator can update
+
+      if (updateError) {
+        throw new Error("Failed to update court: " + updateError.message);
+      }
+
+      setCourt(updatedData);
+      setEditCourt(updatedData);
+      setIsEditDialogOpen(false);
+      setError("");
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : "An unexpected error occurred";
+      console.error("Edit error:", errorMessage);
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -139,7 +239,7 @@ export default function CourtOverview() {
     );
   }
 
-  const canDelete = currentUserId && court.created_by === currentUserId;
+  const canEditOrDelete = currentUserId && court.created_by === currentUserId;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
@@ -148,12 +248,12 @@ export default function CourtOverview() {
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
           {court.images && court.images.length > 0 ? (
             <Image
-              src={court.images[0]} // Display the first image
+              src={court.images[0]}
               alt={`${court.name} image`}
-              width={1200} // Adjust based on your design (container max-width)
-              height={256} // Matches h-64 (64 * 4 = 256px)
+              width={1200}
+              height={256}
               className="w-full h-64 rounded-t-xl object-cover"
-              priority={true} // Optional: Load with priority
+              priority={true}
             />
           ) : (
             <div
@@ -166,15 +266,265 @@ export default function CourtOverview() {
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                 {court.name}
               </h1>
-              {canDelete && (
-                <Button
-                  variant="destructive"
-                  onClick={handleDeleteCourt}
-                  className="flex items-center gap-2"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Delete Court
-                </Button>
+              {canEditOrDelete && (
+                <div className="flex gap-2">
+                  <Dialog
+                    open={isEditDialogOpen}
+                    onOpenChange={setIsEditDialogOpen}
+                  >
+                    <DialogTrigger asChild>
+                      <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                        Edit Court
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md bg-white dark:bg-gray-800 p-6 rounded-xl">
+                      <DialogHeader>
+                        <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">
+                          Edit Court
+                        </DialogTitle>
+                      </DialogHeader>
+
+                      {error && (
+                        <div className="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded-lg p-4 flex items-start">
+                          <AlertCircle className="w-5 h-5 mr-3 mt-0.5 flex-shrink-0" />
+                          <p>{error}</p>
+                        </div>
+                      )}
+
+                      <form onSubmit={handleEditCourt} className="space-y-4">
+                        <div className="space-y-2">
+                          <Label
+                            htmlFor="name"
+                            className="text-gray-700 dark:text-gray-200"
+                          >
+                            Name
+                          </Label>
+                          <Input
+                            id="name"
+                            value={editCourt.name || ""}
+                            onChange={(e) =>
+                              setEditCourt({
+                                ...editCourt,
+                                name: e.target.value,
+                              })
+                            }
+                            className="bg-gray-50 dark:bg-gray-700"
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label
+                            htmlFor="location"
+                            className="text-gray-700 dark:text-gray-200"
+                          >
+                            Location
+                          </Label>
+                          <Input
+                            id="location"
+                            value={editCourt.location || ""}
+                            onChange={(e) =>
+                              setEditCourt({
+                                ...editCourt,
+                                location: e.target.value,
+                              })
+                            }
+                            className="bg-gray-50 dark:bg-gray-700"
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label
+                            htmlFor="city"
+                            className="text-gray-700 dark:text-gray-200"
+                          >
+                            City
+                          </Label>
+                          <Input
+                            id="city"
+                            value={editCourt.city || ""}
+                            onChange={(e) =>
+                              setEditCourt({
+                                ...editCourt,
+                                city: e.target.value,
+                              })
+                            }
+                            className="bg-gray-50 dark:bg-gray-700"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label
+                            htmlFor="description"
+                            className="text-gray-700 dark:text-gray-200"
+                          >
+                            Description
+                          </Label>
+                          <Textarea
+                            id="description"
+                            value={editCourt.description || ""}
+                            onChange={(e) =>
+                              setEditCourt({
+                                ...editCourt,
+                                description: e.target.value,
+                              })
+                            }
+                            className="bg-gray-50 dark:bg-gray-700"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label
+                            htmlFor="pricePerHour"
+                            className="text-gray-700 dark:text-gray-200"
+                          >
+                            Price Per Hour
+                          </Label>
+                          <Input
+                            id="pricePerHour"
+                            value={editCourt.pricePerHour || ""}
+                            onChange={(e) =>
+                              setEditCourt({
+                                ...editCourt,
+                                pricePerHour: e.target.value,
+                              })
+                            }
+                            className="bg-gray-50 dark:bg-gray-700"
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label
+                            htmlFor="availableTimes"
+                            className="text-gray-700 dark:text-gray-200"
+                          >
+                            Available Times (comma-separated)
+                          </Label>
+                          <Input
+                            id="availableTimes"
+                            value={editCourt.availableTimes?.join(", ") || ""}
+                            onChange={(e) =>
+                              setEditCourt({
+                                ...editCourt,
+                                availableTimes: e.target.value
+                                  .split(",")
+                                  .map((t) => t.trim()),
+                              })
+                            }
+                            className="bg-gray-50 dark:bg-gray-700"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label
+                            htmlFor="amenities"
+                            className="text-gray-700 dark:text-gray-200"
+                          >
+                            Amenities (comma-separated)
+                          </Label>
+                          <Input
+                            id="amenities"
+                            value={editCourt.amenities?.join(", ") || ""}
+                            onChange={(e) =>
+                              setEditCourt({
+                                ...editCourt,
+                                amenities: e.target.value
+                                  .split(",")
+                                  .map((a) => a.trim()),
+                              })
+                            }
+                            className="bg-gray-50 dark:bg-gray-700"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label
+                            htmlFor="color"
+                            className="text-gray-700 dark:text-gray-200"
+                          >
+                            Color
+                          </Label>
+                          <Input
+                            id="color"
+                            type="color"
+                            value={editCourt.color || ""}
+                            onChange={(e) =>
+                              setEditCourt({
+                                ...editCourt,
+                                color: e.target.value,
+                              })
+                            }
+                            className="bg-gray-50 dark:bg-gray-700"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label
+                            htmlFor="contactNumber"
+                            className="text-gray-700 dark:text-gray-200"
+                          >
+                            Contact Number
+                          </Label>
+                          <Input
+                            id="contactNumber"
+                            value={editCourt.contactNumber || ""}
+                            onChange={(e) =>
+                              setEditCourt({
+                                ...editCourt,
+                                contactNumber: e.target.value,
+                              })
+                            }
+                            className="bg-gray-50 dark:bg-gray-700"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label
+                            htmlFor="image"
+                            className="text-gray-700 dark:text-gray-200"
+                          >
+                            Image
+                          </Label>
+                          <Input
+                            id="image"
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) =>
+                              setEditCourt({
+                                ...editCourt,
+                                newImageFile: e.target.files?.[0] || null,
+                              })
+                            }
+                            className="bg-gray-50 dark:bg-gray-700"
+                          />
+                          {editCourt.images?.[0] && (
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              Current image:{" "}
+                              {editCourt.images[0].substring(0, 30)}...
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex justify-end space-x-2">
+                          <Button
+                            type="button"
+                            onClick={() => setIsEditDialogOpen(false)}
+                            className="bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white"
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            type="submit"
+                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                            disabled={loading}
+                          >
+                            {loading ? "Saving..." : "Save Changes"}
+                          </Button>
+                        </div>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                  <Button
+                    variant="destructive"
+                    onClick={handleDeleteCourt}
+                    className="flex items-center gap-2"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete Court
+                  </Button>
+                </div>
               )}
             </div>
             <div className="flex items-center text-gray-600 dark:text-gray-300 mb-2">
