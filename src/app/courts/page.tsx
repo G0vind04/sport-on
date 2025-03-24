@@ -49,11 +49,11 @@ export default function Courts() {
     description: "",
     location: "",
     city: "",
-    availableTimes: "",
+    available_times: "",
     amenities: "",
-    pricePerHour: "",
+    price_per_hour: "",
     color: "#4B5EAA",
-    contactNumber: "", // New field
+    contact_number: "", // New field
   });
 
   useEffect(() => {
@@ -115,7 +115,7 @@ export default function Courts() {
         throw new Error("You must be logged in to add a court");
       }
 
-      const availableTimesArray = newCourt.availableTimes
+      const available_timesArray = newCourt.available_times
         .split(",")
         .map((time) => time.trim());
       const amenitiesArray = newCourt.amenities
@@ -127,13 +127,13 @@ export default function Courts() {
         description: newCourt.description,
         location: newCourt.location,
         city: newCourt.city,
-        available_times: availableTimesArray,
+        available_times: available_timesArray,
         amenities: amenitiesArray,
-        price_per_hour: newCourt.pricePerHour,
+        price_per_hour: newCourt.price_per_hour,
         color: newCourt.color,
         rating: 0,
         reviews: 0,
-        contact_number: newCourt.contactNumber, // New field
+        contact_number: newCourt.contact_number, // New field
         created_by: userData.user.id,
       });
 
@@ -147,11 +147,11 @@ export default function Courts() {
         description: "",
         location: "",
         city: "",
-        availableTimes: "",
+        available_times: "",
         amenities: "",
-        pricePerHour: "",
+        price_per_hour: "",
         color: "#4B5EAA",
-        contactNumber: "", // New field
+        contact_number: "", // New field
       });
     } catch (err: unknown) {
       const errorMessage =
@@ -294,18 +294,18 @@ export default function Courts() {
 
                   <div className="space-y-2">
                     <Label
-                      htmlFor="availableTimes"
+                      htmlFor="available_times"
                       className="text-gray-700 dark:text-gray-200 font-medium"
                     >
                       Available Times (comma-separated)
                     </Label>
                     <Input
-                      id="availableTimes"
-                      value={newCourt.availableTimes}
+                      id="available_times"
+                      value={newCourt.available_times}
                       onChange={(e) =>
                         setNewCourt({
                           ...newCourt,
-                          availableTimes: e.target.value,
+                          available_times: e.target.value,
                         })
                       }
                       placeholder="e.g., 10:00 AM - 12:00 PM, 2:00 PM - 4:00 PM"
@@ -335,18 +335,18 @@ export default function Courts() {
 
                   <div className="space-y-2">
                     <Label
-                      htmlFor="pricePerHour"
+                      htmlFor="price_per_hour"
                       className="text-gray-700 dark:text-gray-200 font-medium"
                     >
                       Price Per Hour
                     </Label>
                     <Input
-                      id="pricePerHour"
-                      value={newCourt.pricePerHour}
+                      id="price_per_hour"
+                      value={newCourt.price_per_hour}
                       onChange={(e) =>
                         setNewCourt({
                           ...newCourt,
-                          pricePerHour: e.target.value,
+                          price_per_hour: e.target.value,
                         })
                       }
                       placeholder="e.g., $15"
@@ -357,18 +357,18 @@ export default function Courts() {
 
                   <div className="space-y-2">
                     <Label
-                      htmlFor="contactNumber"
+                      htmlFor="contact_number"
                       className="text-gray-700 dark:text-gray-200 font-medium"
                     >
                       Contact Number
                     </Label>
                     <Input
-                      id="contactNumber"
-                      value={newCourt.contactNumber}
+                      id="contact_number"
+                      value={newCourt.contact_number}
                       onChange={(e) =>
                         setNewCourt({
                           ...newCourt,
-                          contactNumber: e.target.value,
+                          contact_number: e.target.value,
                         })
                       }
                       placeholder="e.g., +1 123-456-7890"
