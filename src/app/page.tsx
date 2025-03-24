@@ -166,7 +166,6 @@ const HomePage: FC = () => {
             ))}
           </div>
         </section>
-
         <CTASection />
       </div>
       <Footer />
