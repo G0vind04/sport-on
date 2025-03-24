@@ -1,3 +1,4 @@
+// src/app/tournaments/[id]/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -19,8 +20,9 @@ type Tournament = {
   max_players: number;
   color: string;
   category: string;
-  created_by?: string;
+  created_by: string; // Changed to required since we'll fetch the name
   city: string | null;
+  creator_name?: string; // Add this to store the creator's name
 };
 
 // Define Registration type with name
@@ -32,7 +34,11 @@ type Registration = {
   users?: { name: string };
 };
 
-export default function TournamentOverview({ params }: { params: { id: string } }) {
+export default function TournamentOverview({
+  params,
+}: {
+  params: { id: string };
+}) {
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,7 +53,8 @@ export default function TournamentOverview({ params }: { params: { id: string } 
       const tournamentId = params.id;
 
       // Check auth status
-      const { data: userData, error: userError } = await supabase.auth.getUser();
+      const { data: userData, error: userError } =
+        await supabase.auth.getUser();
       const signedIn = !!userData.user && !userError;
       setIsSignedIn(signedIn);
       setUserId(userData.user?.id || null);
@@ -67,7 +74,26 @@ export default function TournamentOverview({ params }: { params: { id: string } 
         setError("Tournament not found");
       } else {
         console.log("Tournament data:", tournamentData);
-        setTournament(tournamentData);
+
+        // Fetch creator's name from profiles table
+        const { data: profileData, error: profileError } = await supabase
+          .from("profiles")
+          .select("name")
+          .eq("id", tournamentData.created_by)
+          .single();
+
+        if (profileError) {
+          console.error("Profile fetch error:", profileError.message);
+          setTournament({
+            ...tournamentData,
+            creator_name: "Unknown", // Fallback if creator's profile not found
+          });
+        } else {
+          setTournament({
+            ...tournamentData,
+            creator_name: profileData?.name || "Anonymous", // Use name or fallback
+          });
+        }
       }
 
       // Fetch registrations only if signed in
@@ -98,14 +124,19 @@ export default function TournamentOverview({ params }: { params: { id: string } 
             const formattedRegData = regData.map((reg) => ({
               ...reg,
               users: {
-                name: profilesData?.find((p) => p.id === reg.user_id)?.name || "Unknown",
+                name:
+                  profilesData?.find((p) => p.id === reg.user_id)?.name ||
+                  "Unknown",
               },
             }));
             console.log("Formatted registrations data:", formattedRegData);
             setRegistrations(formattedRegData);
           }
         } else {
-          console.log("No registrations found for tournament ID:", tournamentId);
+          console.log(
+            "No registrations found for tournament ID:",
+            tournamentId
+          );
           setRegistrations([]);
         }
       }
@@ -149,11 +180,15 @@ export default function TournamentOverview({ params }: { params: { id: string } 
           .eq("id", tournamentId);
 
         if (updateError) {
-          throw new Error("Failed to update tournament: " + updateError.message);
+          throw new Error(
+            "Failed to update tournament: " + updateError.message
+          );
         }
 
         setTournament((prev) =>
-          prev ? { ...prev, registered_players: prev.registered_players + 1 } : null
+          prev
+            ? { ...prev, registered_players: prev.registered_players + 1 }
+            : null
         );
         setRegistrations((prev) => [
           ...prev,
@@ -168,7 +203,8 @@ export default function TournamentOverview({ params }: { params: { id: string } 
         setError("");
       }
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
+      const errorMessage =
+        err instanceof Error ? err.message : "An unexpected error occurred";
       console.error("Registration error:", errorMessage);
       setError(errorMessage);
     }
@@ -233,17 +269,19 @@ export default function TournamentOverview({ params }: { params: { id: string } 
                 <strong>Date:</strong> {tournament.date}
               </p>
               <p className="text-gray-500 dark:text-gray-400">
-                <strong>Location:</strong> {tournament.location}, {tournament.city || "N/A"}
+                <strong>Location:</strong> {tournament.location},{" "}
+                {tournament.city || "N/A"}
               </p>
               <p className="text-gray-500 dark:text-gray-400">
                 <strong>Category:</strong> {tournament.category}
               </p>
               <p className="text-gray-500 dark:text-gray-400">
-                <strong>Players:</strong> {tournament.registered_players}/{tournament.max_players}
+                <strong>Players:</strong> {tournament.registered_players}/
+                {tournament.max_players}
               </p>
-              {tournament.created_by && (
+              {tournament.creator_name && (
                 <p className="text-gray-500 dark:text-gray-400">
-                  <strong>Created by:</strong> {tournament.created_by}
+                  <strong>Created by:</strong> {tournament.creator_name}
                 </p>
               )}
             </div>
@@ -256,7 +294,9 @@ export default function TournamentOverview({ params }: { params: { id: string } 
               <Button
                 onClick={handleRegister}
                 className="mt-6 bg-indigo-600 hover:bg-indigo-700 text-white"
-                disabled={tournament.registered_players >= tournament.max_players}
+                disabled={
+                  tournament.registered_players >= tournament.max_players
+                }
               >
                 Register for Tournament
               </Button>
@@ -267,11 +307,16 @@ export default function TournamentOverview({ params }: { params: { id: string } 
             </h2>
             {isSignedIn ? (
               registrations.length === 0 ? (
-                <p className="text-gray-600 dark:text-gray-300">No players registered yet.</p>
+                <p className="text-gray-600 dark:text-gray-300">
+                  No players registered yet.
+                </p>
               ) : (
                 <ul className="space-y-2">
                   {registrations.map((reg) => (
-                    <li key={reg.id} className="text-gray-500 dark:text-gray-400">
+                    <li
+                      key={reg.id}
+                      className="text-gray-500 dark:text-gray-400"
+                    >
                       {reg.users?.name || "Unknown"} - Registered on{" "}
                       {new Date(reg.registered_at).toLocaleDateString()}
                     </li>
