@@ -1,5 +1,6 @@
 // src/components/CourtCard.tsx
-import Link from "next/link"; // Import Link from Next.js
+import Link from "next/link";
+import Image from "next/image"; // Import Image from Next.js for optimized images
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
@@ -16,6 +17,7 @@ type Court = {
   rating: number;
   reviews: number;
   contact_number?: string;
+  images: string[]; // New field for image URLs
 };
 
 export const CourtCard = ({ court }: { court: Court }) => {
@@ -24,14 +26,23 @@ export const CourtCard = ({ court }: { court: Court }) => {
 
   return (
     <Link href={`/courts/${court.id}`} className="block">
-      {" "}
-      {/* Wrap in Link */}
       <Card className="overflow-hidden bg-white dark:bg-gray-800 shadow-md hover:shadow-xl transition duration-300 border-0 rounded-xl">
         <div className="relative">
-          <div
-            className="w-full h-56"
-            style={{ backgroundColor: court.color }}
-          />
+          {court.images && court.images.length > 0 ? (
+            <Image
+              src={court.images[0]} // Display the first image
+              alt={`${court.name} image`}
+              width={400} // Adjust based on your design
+              height={224} // Matches h-56 (56 * 4 = 224px)
+              className="w-full h-56 object-cover" // Ensure it fits the card
+              priority={true} // Optional: Load this image with priority
+            />
+          ) : (
+            <div
+              className="w-full h-56"
+              style={{ backgroundColor: court.color }}
+            />
+          )}
           <div className="absolute top-4 right-4 bg-white dark:bg-gray-800 rounded-lg py-1 px-3 shadow-md flex items-center">
             <span className="text-yellow-500 mr-1">★</span>
             <span className="font-medium text-gray-800 dark:text-white">
@@ -110,7 +121,7 @@ export const CourtCard = ({ court }: { court: Court }) => {
           </div>
           <Button
             className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg py-2"
-            onClick={(e) => e.stopPropagation()} // Prevent button click from triggering Link
+            onClick={(e) => e.stopPropagation()}
           >
             Book Now
           </Button>

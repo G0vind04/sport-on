@@ -2,13 +2,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation"; // For getting dynamic route params
+import { useParams } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
 import { Navigation } from "../../../components/Navigation";
 import { Footer } from "../../../components/Footer";
 import { Button } from "../../../components/ui/button";
 import { Badge } from "../../../components/ui/badge";
-import { MapPin, Clock, Phone } from "lucide-react";
+import { MapPin, Clock, Phone, Trash2 } from "lucide-react";
 
 // Define Court type (consistent with Courts.tsx and CourtCard.tsx)
 type Court = {
@@ -32,10 +32,21 @@ export default function CourtOverview() {
   const [court, setCourt] = useState<Court | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null); // Track current user ID
 
   useEffect(() => {
-    const fetchCourt = async () => {
+    const fetchCourtAndUser = async () => {
       try {
+        // Fetch current user
+        const { data: userData, error: userError } =
+          await supabase.auth.getUser();
+        if (userError) {
+          console.error("Error fetching user:", userError.message);
+        } else if (userData.user) {
+          setCurrentUserId(userData.user.id); // Set current user's ID
+        }
+
+        // Fetch court data
         const { data, error } = await supabase
           .from("courts")
           .select("*")
@@ -78,8 +89,34 @@ export default function CourtOverview() {
       }
     };
 
-    fetchCourt();
+    fetchCourtAndUser();
   }, [id]);
+
+  const handleDeleteCourt = async () => {
+    if (!court || !currentUserId || court.created_by !== currentUserId) return;
+
+    if (!confirm(`Are you sure you want to delete "${court.name}"?`)) return;
+
+    try {
+      const { error } = await supabase
+        .from("courts")
+        .delete()
+        .eq("id", court.id)
+        .eq("created_by", currentUserId); // Ensure only the creator can delete
+
+      if (error) {
+        throw new Error("Failed to delete court: " + error.message);
+      }
+
+      // Redirect to /courts after deletion
+      window.location.href = "/courts";
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : "An unexpected error occurred";
+      console.error(errorMessage);
+      setError(errorMessage);
+    }
+  };
 
   if (loading) {
     return (
@@ -99,6 +136,8 @@ export default function CourtOverview() {
     );
   }
 
+  const canDelete = currentUserId && court.created_by === currentUserId;
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
       <Navigation />
@@ -109,9 +148,21 @@ export default function CourtOverview() {
             style={{ backgroundColor: court.color }}
           />
           <div className="mt-6">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-              {court.name}
-            </h1>
+            <div className="flex justify-between items-center mb-4">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                {court.name}
+              </h1>
+              {canDelete && (
+                <Button
+                  variant="destructive"
+                  onClick={handleDeleteCourt}
+                  className="flex items-center gap-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete Court
+                </Button>
+              )}
+            </div>
             <div className="flex items-center text-gray-600 dark:text-gray-300 mb-2">
               <MapPin className="w-5 h-5 mr-2 text-gray-500 dark:text-gray-400" />
               {court.location}, {court.city}

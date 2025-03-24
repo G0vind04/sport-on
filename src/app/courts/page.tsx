@@ -23,17 +23,18 @@ import {
 type Court = {
   id: number;
   name: string;
-  description: string;
   location: string;
-  city: string;
-  available_times: string[]; // e.g., ["10:00 AM - 12:00 PM"]
-  amenities: string[]; // e.g., ["Showers", "Parking"]
-  price_per_hour: string; // e.g., "$15"
+  available_times: string[];
+  amenities: string[];
+  price_per_hour: string;
   color: string;
   rating: number;
   reviews: number;
-  contact_number?: string; // New field
+  description?: string;
+  city?: string;
+  contact_number?: string;
   created_by?: string;
+  images: string[]; // New field for image URLs
 };
 
 export default function Courts() {
@@ -49,11 +50,12 @@ export default function Courts() {
     description: "",
     location: "",
     city: "",
-    available_times: "",
+    availableTimes: "",
     amenities: "",
-    price_per_hour: "",
+    pricePerHour: "",
     color: "#4B5EAA",
-    contact_number: "", // New field
+    contactNumber: "",
+    images: [] as File[], // Store files temporarily
   });
 
   useEffect(() => {
@@ -103,6 +105,12 @@ export default function Courts() {
     };
   }, []);
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setNewCourt({ ...newCourt, images: Array.from(e.target.files) });
+    }
+  };
+
   const handleCreateCourt = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -115,7 +123,26 @@ export default function Courts() {
         throw new Error("You must be logged in to add a court");
       }
 
-      const available_timesArray = newCourt.available_times
+      // Upload images to Supabase Storage
+      const imageUrls: string[] = [];
+      for (const image of newCourt.images) {
+        const fileName = `${userData.user.id}/${Date.now()}-${image.name}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("court-images") // Create this bucket in Supabase Storage
+          .upload(fileName, image);
+
+        if (uploadError) {
+          throw new Error("Failed to upload image: " + uploadError.message);
+        }
+
+        const { data: urlData } = supabase.storage
+          .from("court-images")
+          .getPublicUrl(fileName);
+
+        imageUrls.push(urlData.publicUrl);
+      }
+
+      const availableTimesArray = newCourt.availableTimes
         .split(",")
         .map((time) => time.trim());
       const amenitiesArray = newCourt.amenities
@@ -127,14 +154,15 @@ export default function Courts() {
         description: newCourt.description,
         location: newCourt.location,
         city: newCourt.city,
-        available_times: available_timesArray,
+        available_times: availableTimesArray,
         amenities: amenitiesArray,
-        price_per_hour: newCourt.price_per_hour,
+        price_per_hour: newCourt.pricePerHour,
         color: newCourt.color,
         rating: 0,
         reviews: 0,
-        contact_number: newCourt.contact_number, // New field
+        contact_number: newCourt.contactNumber,
         created_by: userData.user.id,
+        images: imageUrls, // Save image URLs
       });
 
       if (insertError) {
@@ -147,11 +175,12 @@ export default function Courts() {
         description: "",
         location: "",
         city: "",
-        available_times: "",
+        availableTimes: "",
         amenities: "",
-        price_per_hour: "",
+        pricePerHour: "",
         color: "#4B5EAA",
-        contact_number: "", // New field
+        contactNumber: "",
+        images: [],
       });
     } catch (err: unknown) {
       const errorMessage =
@@ -168,9 +197,9 @@ export default function Courts() {
       court.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       court.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       court.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      court.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      court.city?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (court.contact_number &&
-        court.contact_number.toLowerCase().includes(searchQuery.toLowerCase())); // Include contact_number in search
+        court.contact_number.toLowerCase().includes(searchQuery.toLowerCase()));
 
     return matchesSearch;
   });
@@ -197,7 +226,7 @@ export default function Courts() {
                   Add Court
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-md bg-white dark:bg-gray-800 p-6 rounded-xl">
+              <DialogContent className="sm:max-w-md bg-white dark:bg-gray-800 p-6 rounded-xl max-h-[80vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">
                     Add New Court
@@ -294,18 +323,18 @@ export default function Courts() {
 
                   <div className="space-y-2">
                     <Label
-                      htmlFor="available_times"
+                      htmlFor="availableTimes"
                       className="text-gray-700 dark:text-gray-200 font-medium"
                     >
                       Available Times (comma-separated)
                     </Label>
                     <Input
-                      id="available_times"
-                      value={newCourt.available_times}
+                      id="availableTimes"
+                      value={newCourt.availableTimes}
                       onChange={(e) =>
                         setNewCourt({
                           ...newCourt,
-                          available_times: e.target.value,
+                          availableTimes: e.target.value,
                         })
                       }
                       placeholder="e.g., 10:00 AM - 12:00 PM, 2:00 PM - 4:00 PM"
@@ -335,18 +364,18 @@ export default function Courts() {
 
                   <div className="space-y-2">
                     <Label
-                      htmlFor="price_per_hour"
+                      htmlFor="pricePerHour"
                       className="text-gray-700 dark:text-gray-200 font-medium"
                     >
                       Price Per Hour
                     </Label>
                     <Input
-                      id="price_per_hour"
-                      value={newCourt.price_per_hour}
+                      id="pricePerHour"
+                      value={newCourt.pricePerHour}
                       onChange={(e) =>
                         setNewCourt({
                           ...newCourt,
-                          price_per_hour: e.target.value,
+                          pricePerHour: e.target.value,
                         })
                       }
                       placeholder="e.g., $15"
@@ -357,18 +386,18 @@ export default function Courts() {
 
                   <div className="space-y-2">
                     <Label
-                      htmlFor="contact_number"
+                      htmlFor="contactNumber"
                       className="text-gray-700 dark:text-gray-200 font-medium"
                     >
                       Contact Number
                     </Label>
                     <Input
-                      id="contact_number"
-                      value={newCourt.contact_number}
+                      id="contactNumber"
+                      value={newCourt.contactNumber}
                       onChange={(e) =>
                         setNewCourt({
                           ...newCourt,
-                          contact_number: e.target.value,
+                          contactNumber: e.target.value,
                         })
                       }
                       placeholder="e.g., +1 123-456-7890"
@@ -379,10 +408,32 @@ export default function Courts() {
 
                   <div className="space-y-2">
                     <Label
+                      htmlFor="images"
+                      className="text-gray-700 dark:text-gray-200 font-medium"
+                    >
+                      Court Images
+                    </Label>
+                    <Input
+                      id="images"
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 rounded-lg"
+                    />
+                    {newCourt.images.length > 0 && (
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {newCourt.images.length} image(s) selected
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
                       htmlFor="color"
                       className="text-gray-700 dark:text-gray-200 font-medium"
                     >
-                      Banner Color
+                      Banner Color (Fallback)
                     </Label>
                     <div className="flex items-center gap-3">
                       <Input
@@ -395,7 +446,7 @@ export default function Courts() {
                         className="w-16 h-10 p-1 bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 rounded-lg"
                       />
                       <div className="text-sm text-gray-500 dark:text-gray-400">
-                        Select a banner color for your court
+                        Select a fallback color if no images are uploaded
                       </div>
                     </div>
                   </div>
