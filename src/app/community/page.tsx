@@ -1,3 +1,4 @@
+// src/app/community/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -7,23 +8,25 @@ import { Footer } from "../../components/Footer";
 import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, AlertCircle, MessageSquare, Calendar } from "lucide-react";
+import { Input } from "@/components/ui/input"; // Added for file input
+import { Send, AlertCircle, MessageSquare, Calendar, X } from "lucide-react"; // Added X for remove image
 import Image from "next/image";
 
-// Define the Post type based on the Supabase 'posts' table with user info from 'profiles' table
 type Post = {
   id: number;
   user_id: string;
   content: string;
   image?: string | null;
   created_at: string;
-  user_name?: string; // From profiles.name
-  user_avatar?: string | null; // From profiles.avatar_url
+  user_name?: string;
+  user_avatar?: string | null;
 };
 
 export default function Community() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [content, setContent] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null); // For image upload
+  const [imagePreview, setImagePreview] = useState<string | null>(null); // For image preview
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [isLoadingPosts, setIsLoadingPosts] = useState(true);
@@ -32,7 +35,6 @@ export default function Community() {
     const fetchPostsAndProfiles = async () => {
       setIsLoadingPosts(true);
       try {
-        // Fetch all posts
         const { data: postsData, error: postsError } = await supabase
           .from("posts")
           .select("id, user_id, content, image, created_at")
@@ -40,26 +42,25 @@ export default function Community() {
 
         if (postsError) throw new Error(postsError.message);
 
-        // Fetch all profiles
         const { data: profilesData, error: profilesError } = await supabase
           .from("profiles")
           .select("id, name, avatar_url");
 
         if (profilesError) throw new Error(profilesError.message);
 
-        // Map posts with profile data
-        const transformedPosts = postsData?.map((post) => {
-          const profile = profilesData?.find((p) => p.id === post.user_id);
-          return {
-            id: post.id,
-            user_id: post.user_id,
-            content: post.content,
-            image: post.image || null,
-            created_at: post.created_at,
-            user_name: profile?.name || "Anonymous",
-            user_avatar: profile?.avatar_url || null,
-          };
-        }) || [];
+        const transformedPosts =
+          postsData?.map((post) => {
+            const profile = profilesData?.find((p) => p.id === post.user_id);
+            return {
+              id: post.id,
+              user_id: post.user_id,
+              content: post.content,
+              image: post.image || null,
+              created_at: post.created_at,
+              user_name: profile?.name || "Anonymous",
+              user_avatar: profile?.avatar_url || null,
+            };
+          }) || [];
 
         console.log("Fetched initial posts with profiles:", transformedPosts);
         setPosts(transformedPosts);
@@ -75,7 +76,6 @@ export default function Community() {
 
     fetchPostsAndProfiles();
 
-    // Real-time subscription for new posts
     const subscription = supabase
       .channel("public:posts")
       .on(
@@ -92,7 +92,6 @@ export default function Community() {
             created_at: string;
           };
 
-          // Fetch user info from 'profiles' table
           const { data: profileData, error: profileError } = await supabase
             .from("profiles")
             .select("id, name, avatar_url")
@@ -101,8 +100,6 @@ export default function Community() {
 
           if (profileError) {
             console.error("Profile fetch error:", profileError.message);
-          } else {
-            console.log("Fetched profile for new post:", profileData);
           }
 
           const enrichedPost: Post = {
@@ -117,48 +114,74 @@ export default function Community() {
       )
       .subscribe((status) => {
         console.log("Subscription status:", status);
-        if (status === "SUBSCRIBED") {
-          console.log("Successfully subscribed to real-time updates for posts");
-        } else if (status === "CLOSED") {
-          console.log("Subscription closed");
-        } else if (status === "CHANNEL_ERROR") {
-          console.error("Channel error occurred");
-        }
       });
 
-    // Cleanup subscription on unmount
     return () => {
       console.log("Unsubscribing from real-time updates");
       subscription.unsubscribe();
     };
   }, []);
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+    }
+  };
+
+  const removeImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+  };
+
   const handlePost = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
 
-    if (!content.trim()) {
-      setError("Post content cannot be empty");
+    if (!content.trim() && !imageFile) {
+      setError("Post must have content or an image");
       setIsLoading(false);
       return;
     }
 
     try {
-      const { data: userData, error: userError } = await supabase.auth.getUser();
+      const { data: userData, error: userError } =
+        await supabase.auth.getUser();
       if (userError || !userData.user) {
         throw new Error("You must be logged in to post");
       }
 
+      let imageUrl: string | undefined;
+      if (imageFile) {
+        const fileExt = imageFile.name.split(".").pop();
+        const fileName = `${userData.user.id}-${Date.now()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from("post-images")
+          .upload(fileName, imageFile, { upsert: true });
+
+        if (uploadError) {
+          throw new Error("Failed to upload image: " + uploadError.message);
+        }
+
+        const { data: urlData } = supabase.storage
+          .from("post-images")
+          .getPublicUrl(fileName);
+        imageUrl = urlData.publicUrl;
+      }
+
       const { error: postError } = await supabase
         .from("posts")
-        .insert({ user_id: userData.user.id, content })
+        .insert({ user_id: userData.user.id, content, image: imageUrl })
         .select()
         .single();
 
       if (postError) throw new Error(postError.message);
 
-      setContent(""); // Clear input on success
+      setContent("");
+      setImageFile(null);
+      setImagePreview(null);
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "An unexpected error occurred";
@@ -209,7 +232,32 @@ export default function Community() {
                   placeholder="What's happening in your badminton world?"
                   className="w-full p-4 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
                 />
-                <div className="flex justify-end">
+                {imagePreview && (
+                  <div className="relative w-full max-w-xs">
+                    <Image
+                      src={imagePreview}
+                      alt="Image preview"
+                      width={384}
+                      height={384}
+                      className="rounded-lg object-cover max-h-48 w-full"
+                    />
+                    <button
+                      type="button"
+                      onClick={removeImage}
+                      className="absolute top-2 right-2 bg-red-600 text-white p-1 rounded-full hover:bg-red-700"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+                <div className="flex justify-between items-center">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="w-auto bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-200"
+                    disabled={isLoading}
+                  />
                   <Button
                     type="submit"
                     className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-medium shadow-md transition-all duration-200 flex items-center"
@@ -272,7 +320,9 @@ export default function Community() {
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                 />
               </svg>
-              <p className="mt-4 text-gray-600 dark:text-gray-300">Loading posts...</p>
+              <p className="mt-4 text-gray-600 dark:text-gray-300">
+                Loading posts...
+              </p>
             </div>
           ) : posts.length === 0 ? (
             <Card className="border-0 shadow-lg bg-white dark:bg-gray-800 rounded-xl overflow-hidden">
@@ -330,7 +380,7 @@ export default function Community() {
                               alt="Post image"
                               width={384}
                               height={384}
-                              className="rounded-lg object-cover max-h-96"
+                              className="rounded-lg object-cover max-h-96 w-full"
                             />
                           </div>
                         )}

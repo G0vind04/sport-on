@@ -1,3 +1,4 @@
+// src/app/users/[id]/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -19,11 +20,12 @@ type CommunityPost = {
   id: number;
   user_id: string;
   content: string;
+  image?: string | null; // Added for image support
   created_at: string;
 };
 
 export default function UserOverview() {
-  const { id } = useParams(); // Get the user ID from the URL
+  const { id } = useParams();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,7 +37,7 @@ export default function UserOverview() {
         // Fetch profile details
         const { data: profileData, error: profileError } = await supabase
           .from("profiles")
-          .select("id, name, avatar_url, created_at") // Add more columns as needed
+          .select("id, name, avatar_url, created_at")
           .eq("id", id)
           .single();
 
@@ -49,10 +51,10 @@ export default function UserOverview() {
 
         setProfile(profileData);
 
-        // Fetch community posts
+        // Fetch community posts with images
         const { data: postsData, error: postsError } = await supabase
           .from("posts")
-          .select("id, user_id, content, created_at")
+          .select("id, user_id, content, image, created_at") // Added 'image'
           .eq("user_id", id)
           .order("created_at", { ascending: false });
 
@@ -153,9 +155,20 @@ export default function UserOverview() {
                     key={post.id}
                     className="p-5 bg-gray-50 dark:bg-gray-700 rounded-lg shadow-sm"
                   >
-                    <p className="text-gray-800 dark:text-gray-200">
+                    <p className="text-gray-800 dark:text-gray-200 whitespace-pre-line">
                       {post.content}
                     </p>
+                    {post.image && (
+                      <div className="mt-3">
+                        <Image
+                          src={post.image}
+                          alt="Post image"
+                          width={384}
+                          height={384}
+                          className="rounded-lg object-cover max-h-96 w-full"
+                        />
+                      </div>
+                    )}
                     <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
                       Posted on{" "}
                       {new Date(post.created_at).toLocaleString("en-US", {
