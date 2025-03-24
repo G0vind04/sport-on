@@ -21,6 +21,7 @@ import {
 } from "../../../components/ui/dialog";
 import { MapPin, Clock, Phone, Trash2, AlertCircle } from "lucide-react";
 import { BookingDialog } from "../../../components/BookingDialog";
+import { BookingsList } from "../../../components/BookingList";
 
 // Define Court type
 type Court = {
@@ -264,7 +265,6 @@ export default function CourtOverview() {
       throw new Error("Failed to book court: " + error.message);
     }
 
-    // Update booked times if the booking is for today
     if (date === new Date().toISOString().split("T")[0]) {
       setBookedTimes((prev) => new Set([...prev, time]));
     }
@@ -650,6 +650,8 @@ export default function CourtOverview() {
                 )}
               </div>
             </div>
+
+            {canEditOrDelete && <BookingsList courtId={court.id} />}
 
             <div className="flex items-center justify-between mb-6">
               <div>
