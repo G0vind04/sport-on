@@ -20,6 +20,7 @@ import {
   DialogTrigger,
 } from "../../../components/ui/dialog";
 import { MapPin, Clock, Phone, Trash2, AlertCircle } from "lucide-react";
+import { BookingDialog } from "../../../components/BookingDialog";
 
 // Define Court type
 type Court = {
@@ -46,6 +47,7 @@ export default function CourtOverview() {
   const { id } = useParams();
   const router = useRouter();
   const [court, setCourt] = useState<Court | null>(null);
+  const [bookedTimes, setBookedTimes] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -65,39 +67,55 @@ export default function CourtOverview() {
         }
 
         // Fetch court data
-        const { data, error } = await supabase
+        const { data: courtData, error: courtError } = await supabase
           .from("courts")
           .select("*")
           .eq("id", id)
           .single();
 
-        if (error) {
-          throw new Error("Failed to fetch court: " + error.message);
+        if (courtError) {
+          throw new Error("Failed to fetch court: " + courtError.message);
         }
 
-        if (!data) {
+        if (!courtData) {
           throw new Error("Court not found");
         }
 
-        const courtData: Court = {
-          id: data.id,
-          name: data.name,
-          location: data.location,
-          availableTimes: data.available_times || [],
-          amenities: data.amenities || [],
-          pricePerHour: data.price_per_hour,
-          color: data.color,
-          rating: data.rating,
-          reviews: data.reviews,
-          description: data.description,
-          city: data.city,
-          contactNumber: data.contact_number,
-          created_by: data.created_by,
-          images: data.images || [],
+        const court: Court = {
+          id: courtData.id,
+          name: courtData.name,
+          location: courtData.location,
+          availableTimes: courtData.available_times || [],
+          amenities: courtData.amenities || [],
+          pricePerHour: courtData.price_per_hour,
+          color: courtData.color,
+          rating: courtData.rating,
+          reviews: courtData.reviews,
+          description: courtData.description,
+          city: courtData.city,
+          contactNumber: courtData.contact_number,
+          created_by: courtData.created_by,
+          images: courtData.images || [],
         };
 
-        setCourt(courtData);
-        setEditCourt(courtData); // Initialize edit form with current data
+        setCourt(court);
+        setEditCourt(court);
+
+        // Fetch existing bookings for today to filter available times
+        const today = new Date().toISOString().split("T")[0];
+        const { data: bookingsData, error: bookingsError } = await supabase
+          .from("court_bookings")
+          .select("booking_time")
+          .eq("court_id", id)
+          .eq("booking_date", today);
+
+        if (bookingsError) {
+          console.error("Error fetching bookings:", bookingsError.message);
+        } else {
+          setBookedTimes(
+            new Set(bookingsData?.map((b) => b.booking_time) || [])
+          );
+        }
       } catch (err: unknown) {
         const errorMessage =
           err instanceof Error ? err.message : "An unexpected error occurred";
@@ -141,7 +159,6 @@ export default function CourtOverview() {
     setLoading(true);
     setError("");
 
-    // Validate required fields
     if (!editCourt.name) {
       setError("Court name is required.");
       setLoading(false);
@@ -164,7 +181,7 @@ export default function CourtOverview() {
         const fileExt = editCourt.newImageFile.name.split(".").pop();
         const fileName = `${Date.now()}.${fileExt}`;
         const { error: uploadError } = await supabase.storage
-          .from("court-images") // Adjust bucket name as needed
+          .from("court-images")
           .upload(fileName, editCourt.newImageFile);
 
         if (uploadError) {
@@ -185,8 +202,8 @@ export default function CourtOverview() {
         amenities: editCourt.amenities || court!.amenities,
         pricePerHour: editCourt.pricePerHour || court!.pricePerHour,
         color: editCourt.color || court!.color,
-        rating: court!.rating, // Keep unchanged
-        reviews: court!.reviews, // Keep unchanged
+        rating: court!.rating,
+        reviews: court!.reviews,
         description: editCourt.description || court!.description,
         city: editCourt.city !== undefined ? editCourt.city : court!.city,
         contactNumber:
@@ -201,7 +218,7 @@ export default function CourtOverview() {
         .from("courts")
         .update(updatedData)
         .eq("id", court!.id)
-        .eq("created_by", currentUserId); // Ensure only creator can update
+        .eq("created_by", currentUserId);
 
       if (updateError) {
         throw new Error("Failed to update court: " + updateError.message);
@@ -218,6 +235,38 @@ export default function CourtOverview() {
       setError(errorMessage);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleBookCourt = async (time: string, date: string) => {
+    if (!currentUserId) {
+      throw new Error("You must be signed in to book a court.");
+    }
+
+    if (
+      bookedTimes.has(time) &&
+      date === new Date().toISOString().split("T")[0]
+    ) {
+      throw new Error("This time slot is already booked for today.");
+    }
+
+    const { error } = await supabase.from("court_bookings").insert({
+      court_id: court!.id,
+      user_id: currentUserId,
+      booking_time: time,
+      booking_date: date,
+    });
+
+    if (error) {
+      if (error.code === "23505") {
+        throw new Error("This time slot is already booked.");
+      }
+      throw new Error("Failed to book court: " + error.message);
+    }
+
+    // Update booked times if the booking is for today
+    if (date === new Date().toISOString().split("T")[0]) {
+      setBookedTimes((prev) => new Set([...prev, time]));
     }
   };
 
@@ -240,6 +289,9 @@ export default function CourtOverview() {
   }
 
   const canEditOrDelete = currentUserId && court.created_by === currentUserId;
+  const availableTimesToday = court.availableTimes.filter(
+    (time) => !bookedTimes.has(time)
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
@@ -551,10 +603,15 @@ export default function CourtOverview() {
                     <Badge
                       key={index}
                       variant="outline"
-                      className="py-1 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 flex items-center"
+                      className={`py-1 border-gray-300 dark:border-gray-600 ${
+                        bookedTimes.has(time)
+                          ? "text-gray-400 dark:text-gray-500 bg-gray-200 dark:bg-gray-700"
+                          : "text-gray-700 dark:text-gray-300"
+                      } flex items-center`}
                     >
                       <Clock className="w-4 h-4 mr-1" />
                       {time}
+                      {bookedTimes.has(time) && " (Booked)"}
                     </Badge>
                   ))
                 ) : (
@@ -614,9 +671,11 @@ export default function CourtOverview() {
               </div>
             </div>
 
-            <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg py-3">
-              Book Now
-            </Button>
+            <BookingDialog
+              courtId={court.id}
+              availableTimes={availableTimesToday}
+              onBook={handleBookCourt}
+            />
           </div>
         </div>
       </div>
