@@ -1,3 +1,4 @@
+// src/app/tournaments/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -41,6 +42,7 @@ type Tournament = {
   category: string;
   created_by?: string;
   city: string | null;
+  images: string[]; // Added images field
 };
 
 export default function Tournaments() {
@@ -55,12 +57,13 @@ export default function Tournaments() {
   const [newTournament, setNewTournament] = useState({
     name: "",
     description: "",
-    date: "", // Stored as "MMMM d, yyyy" (e.g., "April 15, 2025")
+    date: "",
     location: "",
     maxPlayers: 32,
     category: "Singles",
     color: "#4f46e5",
     city: "",
+    imageFile: null as File | null, // Added for image upload
   });
 
   useEffect(() => {
@@ -124,10 +127,28 @@ export default function Tournaments() {
         throw new Error("You must be logged in to create a tournament");
       }
 
+      let imageUrl: string | null = null;
+      if (newTournament.imageFile) {
+        const fileExt = newTournament.imageFile.name.split(".").pop();
+        const fileName = `${Date.now()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from("tournament-images")
+          .upload(fileName, newTournament.imageFile);
+
+        if (uploadError) {
+          throw new Error("Failed to upload image: " + uploadError.message);
+        }
+
+        const { data: urlData } = supabase.storage
+          .from("tournament-images")
+          .getPublicUrl(fileName);
+        imageUrl = urlData.publicUrl;
+      }
+
       const { error: insertError } = await supabase.from("tournaments").insert({
         name: newTournament.name,
         description: newTournament.description,
-        date: newTournament.date, // Stored as "April 15, 2025"
+        date: newTournament.date,
         location: newTournament.location,
         max_players: newTournament.maxPlayers,
         registered_players: 0,
@@ -135,6 +156,7 @@ export default function Tournaments() {
         category: newTournament.category,
         created_by: userData.user.id,
         city: newTournament.city,
+        images: imageUrl ? [imageUrl] : [], // Store image URL in array
       });
 
       if (insertError) {
@@ -151,6 +173,7 @@ export default function Tournaments() {
         category: "Singles",
         color: "#4f46e5",
         city: "",
+        imageFile: null,
       });
     } catch (err: unknown) {
       const errorMessage =
@@ -290,7 +313,7 @@ export default function Tournaments() {
                             date: date ? formatDate(date) : "",
                           })
                         }
-                        dateFormat="MMMM d, yyyy" // Display format
+                        dateFormat="MMMM d, yyyy"
                         placeholderText="Select a date (e.g., April 15, 2025)"
                         className="w-full pl-10 p-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 dark:text-white"
                         required
@@ -428,6 +451,30 @@ export default function Tournaments() {
                         Select a banner color for your tournament
                       </div>
                     </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="image"
+                      className="text-gray-700 dark:text-gray-200 font-medium"
+                    >
+                      Tournament Image
+                    </Label>
+                    <Input
+                      id="image"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) =>
+                        setNewTournament({
+                          ...newTournament,
+                          imageFile: e.target.files?.[0] || null,
+                        })
+                      }
+                      className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 rounded-lg"
+                    />
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Upload an optional image for your tournament
+                    </p>
                   </div>
 
                   <div className="flex justify-end pt-4">

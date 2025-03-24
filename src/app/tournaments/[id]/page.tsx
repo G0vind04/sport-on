@@ -1,4 +1,3 @@
-// src/app/tournaments/[id]/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -8,6 +7,7 @@ import { Card, CardContent } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
 import { supabase } from "../../../lib/supabase";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 // Define Tournament type
 type Tournament = {
@@ -20,9 +20,10 @@ type Tournament = {
   max_players: number;
   color: string;
   category: string;
-  created_by: string; // Changed to required since we'll fetch the name
+  created_by: string;
   city: string | null;
-  creator_name?: string; // Add this to store the creator's name
+  creator_name?: string;
+  images: string[]; // Added images field
 };
 
 // Define Registration type with name
@@ -63,7 +64,7 @@ export default function TournamentOverview({
       // Fetch tournament (publicly accessible)
       const { data: tournamentData, error: tournamentError } = await supabase
         .from("tournaments")
-        .select("*")
+        .select("*") // Includes images field
         .eq("id", tournamentId)
         .single();
 
@@ -86,12 +87,12 @@ export default function TournamentOverview({
           console.error("Profile fetch error:", profileError.message);
           setTournament({
             ...tournamentData,
-            creator_name: "Unknown", // Fallback if creator's profile not found
+            creator_name: "Unknown",
           });
         } else {
           setTournament({
             ...tournamentData,
-            creator_name: profileData?.name || "Anonymous", // Use name or fallback
+            creator_name: profileData?.name || "Anonymous",
           });
         }
       }
@@ -254,10 +255,20 @@ export default function TournamentOverview({
         </Button>
         <Card className="border-0 shadow-md bg-white dark:bg-gray-800 rounded-xl overflow-hidden">
           <CardContent className="p-8">
-            <div
-              className="h-4 w-full mb-6"
-              style={{ backgroundColor: tournament.color }}
-            />
+            {tournament.images && tournament.images.length > 0 ? (
+              <Image
+                src={tournament.images[0]}
+                alt={`${tournament.name} image`}
+                width={1200}
+                height={300}
+                className="w-full h-64 object-cover mb-6 rounded-t-xl"
+              />
+            ) : (
+              <div
+                className="h-64 w-full mb-6 rounded-t-xl"
+                style={{ backgroundColor: tournament.color }}
+              />
+            )}
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
               {tournament.name}
             </h1>

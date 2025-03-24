@@ -1,7 +1,7 @@
-"use client";
-
-import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
+import { useRouter } from "next/navigation";
 
 type Tournament = {
   id: number;
@@ -15,40 +15,58 @@ type Tournament = {
   category: string;
   created_by?: string;
   city: string | null;
+  images: string[];
 };
 
 export const TournamentCard = ({ tournament }: { tournament: Tournament }) => {
   const router = useRouter();
 
-  const handleClick = () => {
-    router.push(`/tournaments/${tournament.id}`);
-  };
-
   return (
-    <Card
-      className="border-0 shadow-md bg-white dark:bg-gray-800 rounded-xl overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
-      onClick={handleClick}
-    >
-      <CardContent className="p-6">
+    <Card className="bg-white dark:bg-gray-800 shadow-md rounded-xl overflow-hidden">
+      {tournament.images && tournament.images.length > 0 ? (
+        <Image
+          src={tournament.images[0]}
+          alt={`${tournament.name} image`}
+          width={400}
+          height={224}
+          className="w-full h-56 object-cover"
+        />
+      ) : (
         <div
-          className="h-2 w-full mb-4"
+          className="w-full h-56"
           style={{ backgroundColor: tournament.color }}
         />
+      )}
+      <CardContent className="p-6">
         <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
           {tournament.name}
         </h3>
-        <p className="text-gray-600 dark:text-gray-300 mb-2">
+        <p className="text-gray-600 dark:text-gray-300 mb-4 line-clamp-2">
           {tournament.description}
         </p>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          {tournament.date} • {tournament.location}, {tournament.city || "N/A"}
-        </p>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Category: {tournament.category}
-        </p>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Players: {tournament.registered_players}/{tournament.max_players}
-        </p>
+        <div className="space-y-2 text-gray-500 dark:text-gray-400">
+          <p>
+            <strong>Date:</strong> {tournament.date}
+          </p>
+          <p>
+            <strong>Location:</strong> {tournament.location}
+            {tournament.city && `, ${tournament.city}`}
+          </p>
+          <p>
+            <strong>Players:</strong> {tournament.registered_players}/
+            {tournament.max_players}
+          </p>
+          <p>
+            <strong>Category:</strong> {tournament.category}
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          className="w-full mt-4"
+          onClick={() => router.push(`/tournaments/${tournament.id}`)}
+        >
+          View Details
+        </Button>
       </CardContent>
     </Card>
   );
