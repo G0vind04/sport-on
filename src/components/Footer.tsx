@@ -1,12 +1,23 @@
-// src/components/Footer.tsx
+import Image from "next/image";
+
 export const Footer = () => (
   <footer className="bg-gray-100 dark:bg-gray-800 pt-16 pb-8">
     <div className="max-w-screen-xl mx-auto px-4">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
         <div>
           <div className="flex items-center space-x-2 mb-6">
-            <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-xl">BN</span>
+            <div className="w-10 h-10  rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-xl">
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center">
+                  <Image
+                    src="/sporto.ico" // Path to the logo in the public folder
+                    alt="SportOn logo"
+                    width={100} // Adjust the size as needed
+                    height={100} // Adjust the size as needed
+                    className="object-cover"
+                  />
+                </div>
+              </span>
             </div>
             <span className="font-bold text-xl text-gray-900 dark:text-white">
               SportOn

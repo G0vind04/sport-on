@@ -90,8 +90,18 @@ export const Navigation = () => {
       <nav className="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-10">
         <div className="max-w-screen-xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center space-x-2">
-            <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-xl">BN</span>
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-xl">
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center">
+                  <Image
+                    src="/sporto.ico" // Path to the logo in the public folder
+                    alt="SportOn logo"
+                    width={60} // Adjust the size as needed
+                    height={60} // Adjust the size as needed
+                    className="object-cover"
+                  />
+                </div>
+              </span>
             </div>
             <span className="font-bold text-xl text-gray-900 dark:text-white">
               SportOn
