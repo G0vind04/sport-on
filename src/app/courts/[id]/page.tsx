@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
+import Image from "next/image"; // Import Image for optimized image rendering
 import { supabase } from "../../../lib/supabase";
 import { Navigation } from "../../../components/Navigation";
 import { Footer } from "../../../components/Footer";
@@ -25,6 +26,7 @@ type Court = {
   city?: string;
   contactNumber?: string;
   created_by?: string;
+  images: string[]; // New field for image URLs
 };
 
 export default function CourtOverview() {
@@ -76,6 +78,7 @@ export default function CourtOverview() {
           city: data.city,
           contactNumber: data.contact_number,
           created_by: data.created_by,
+          images: data.images || [], // Include images
         };
 
         setCourt(courtData);
@@ -143,10 +146,21 @@ export default function CourtOverview() {
       <Navigation />
       <div className="flex-grow container mx-auto px-4 py-8">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
-          <div
-            className="w-full h-64 rounded-t-xl"
-            style={{ backgroundColor: court.color }}
-          />
+          {court.images && court.images.length > 0 ? (
+            <Image
+              src={court.images[0]} // Display the first image
+              alt={`${court.name} image`}
+              width={1200} // Adjust based on your design (container max-width)
+              height={256} // Matches h-64 (64 * 4 = 256px)
+              className="w-full h-64 rounded-t-xl object-cover"
+              priority={true} // Optional: Load with priority
+            />
+          ) : (
+            <div
+              className="w-full h-64 rounded-t-xl"
+              style={{ backgroundColor: court.color }}
+            />
+          )}
           <div className="mt-6">
             <div className="flex justify-between items-center mb-4">
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
