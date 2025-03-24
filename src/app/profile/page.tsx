@@ -1,4 +1,3 @@
-// src/app/profile/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -14,7 +13,7 @@ import { MapPin, Clock, User } from "lucide-react";
 type User = {
   id: string;
   email?: string;
-  name?: string; // Changed from full_name to match profiles table
+  name?: string;
   avatar_url?: string;
 };
 
@@ -52,7 +51,6 @@ export default function Profile() {
   useEffect(() => {
     const fetchProfileData = async () => {
       try {
-        // Fetch authenticated user
         const { data: userData, error: userError } =
           await supabase.auth.getUser();
         if (userError || !userData.user) {
@@ -61,7 +59,7 @@ export default function Profile() {
 
         const userId = userData.user.id;
 
-        // Fetch user profile from profiles table
+        // Fetch profile data
         const { data: profileData, error: profileError } = await supabase
           .from("profiles")
           .select("name, avatar_url")
@@ -75,11 +73,11 @@ export default function Profile() {
         setUser({
           id: userId,
           email: userData.user.email,
-          name: profileData?.name || "Anonymous", // Use name from profiles, fallback to "Anonymous"
+          name: profileData?.name || "Anonymous",
           avatar_url: profileData?.avatar_url,
         });
 
-        // Fetch tournaments created by the user
+        // Fetch created tournaments
         const { data: createdData, error: createdError } = await supabase
           .from("tournaments")
           .select("id, name, date, location, created_by")
@@ -92,7 +90,7 @@ export default function Profile() {
         }
         setCreatedTournaments(createdData || []);
 
-        // Fetch tournaments the user has registered for
+        // Fetch registered tournaments
         const { data: regData, error: regError } = await supabase
           .from("registrations")
           .select("tournaments(id, name, date, location, created_by)")
@@ -109,7 +107,7 @@ export default function Profile() {
           ) || [];
         setRegisteredTournaments(registered);
 
-        // Fetch courts added by the user
+        // Fetch courts
         const { data: courtData, error: courtError } = await supabase
           .from("courts")
           .select("id, name, location, city, images, color, created_by")
@@ -125,7 +123,7 @@ export default function Profile() {
         console.error(errorMessage);
         setError(errorMessage);
         if (errorMessage.includes("logged in")) {
-          router.push("/login"); // Redirect to login if not authenticated
+          router.push("/login");
         }
       } finally {
         setLoading(false);
@@ -162,30 +160,30 @@ export default function Profile() {
         </h1>
 
         {/* User Details */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-8">
-          <div className="flex items-center space-x-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-8 flex items-center space-x-6">
+          <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700">
             {user.avatar_url ? (
               <Image
                 src={user.avatar_url}
                 alt="User avatar"
-                width={80}
-                height={80}
-                className="rounded-full object-cover"
+                width={96}
+                height={96}
+                className="object-cover w-full h-full"
               />
             ) : (
-              <div className="w-20 h-20 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                <User className="w-10 h-10 text-gray-500 dark:text-gray-400" />
+              <div className="w-full h-full flex items-center justify-center bg-gray-300 dark:bg-gray-600">
+                <User className="w-12 h-12 text-gray-500 dark:text-gray-400" />
               </div>
             )}
-            <div>
-              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
-                {user.name}
-              </h2>
-              <p className="text-gray-600 dark:text-gray-300">{user.email}</p>
-            </div>
+          </div>
+          <div>
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
+              {user.name}
+            </h2>
+            <p className="text-gray-600 dark:text-gray-300">{user.email}</p>
           </div>
           <Button
-            className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white"
+            className="ml-auto bg-indigo-600 hover:bg-indigo-700 text-white"
             onClick={() => router.push("/profile/edit")}
           >
             Edit Profile
@@ -292,7 +290,7 @@ export default function Profile() {
                   key={court.id}
                   className="bg-white dark:bg-gray-800 shadow-md rounded-xl overflow-hidden"
                 >
-                  {court.images && court.images.length > 0 ? (
+                  {court.images.length > 0 ? (
                     <Image
                       src={court.images[0]}
                       alt={`${court.name} image`}
