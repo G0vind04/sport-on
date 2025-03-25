@@ -94,7 +94,7 @@ export default function EditProfile() {
         const fileExt = avatarFile.name.split(".").pop();
         const fileName = `${user.id}-${Date.now()}.${fileExt}`;
         const { error: uploadError } = await supabase.storage
-          .from("avatars") // Ensure this bucket exists in Supabase Storage
+          .from("profile-pics") // Ensure this bucket exists in Supabase Storage
           .upload(fileName, avatarFile, { upsert: true });
 
         if (uploadError) {
@@ -102,7 +102,7 @@ export default function EditProfile() {
         }
 
         const { data: urlData } = supabase.storage
-          .from("avatars")
+          .from("profile-pics")
           .getPublicUrl(fileName);
         avatarUrl = urlData.publicUrl;
       }
