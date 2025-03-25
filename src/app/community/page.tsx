@@ -8,8 +8,8 @@ import { Footer } from "../../components/Footer";
 import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input"; // Added for file input
-import { Send, AlertCircle, MessageSquare, Calendar, X } from "lucide-react"; // Added X for remove image
+import { Input } from "@/components/ui/input";
+import { Send, AlertCircle, MessageSquare, Calendar, X } from "lucide-react";
 import Image from "next/image";
 
 type Post = {
@@ -25,8 +25,8 @@ type Post = {
 export default function Community() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [content, setContent] = useState("");
-  const [imageFile, setImageFile] = useState<File | null>(null); // For image upload
-  const [imagePreview, setImagePreview] = useState<string | null>(null); // For image preview
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [isLoadingPosts, setIsLoadingPosts] = useState(true);
@@ -345,19 +345,19 @@ export default function Community() {
                 >
                   <CardContent className="p-6">
                     <div className="flex items-start space-x-4">
-                      <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center flex-shrink-0">
+                      <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center flex-shrink-0 overflow-hidden">
                         {post.user_avatar ? (
                           <Image
                             src={post.user_avatar}
                             alt={post.user_name || "User avatar"}
                             width={40}
                             height={40}
-                            className="rounded-full object-cover"
+                            className="w-full h-full object-cover rounded-full"
                           />
                         ) : (
-                          <div className="font-medium text-indigo-600 dark:text-indigo-400">
+                          <span className="text-indigo-600 dark:text-indigo-400 font-medium text-lg">
                             {post.user_name?.charAt(0).toUpperCase() || "A"}
-                          </div>
+                          </span>
                         )}
                       </div>
                       <div className="flex-1">
