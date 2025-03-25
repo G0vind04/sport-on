@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
+import { useRouter } from "next/navigation"; // Import useRouter
 import { Button } from "./ui/button";
 import Image from "next/image";
 import Link from "next/link";
 import { User } from "@supabase/supabase-js";
 
-// Define the shape of the profile data
 interface UserProfile {
   name: string;
   profile_pic?: string;
@@ -16,7 +16,8 @@ interface UserProfile {
 export const Navigation = () => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [isLoggingOut, setIsLoggingOut] = useState(false); // New state for logout loading
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const router = useRouter(); // Initialize useRouter
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -64,7 +65,7 @@ export const Navigation = () => {
   }, []);
 
   const handleLogout = async () => {
-    setIsLoggingOut(true); // Show the loading popup
+    setIsLoggingOut(true);
     try {
       const { error } = await supabase.auth.signOut();
       if (error) {
@@ -73,15 +74,15 @@ export const Navigation = () => {
       } else {
         setUser(null);
         setProfile(null);
-        // Simulate a delay for the loading effect (optional)
+        // Optional delay for loading effect
         await new Promise((resolve) => setTimeout(resolve, 1000));
-        window.location.reload(); // Refresh the entire page
+        router.push("/signin"); // Redirect to /signin
       }
     } catch (err) {
       console.error("Unexpected logout error:", err);
       alert("An unexpected error occurred during logout");
     } finally {
-      setIsLoggingOut(false); // Hide the popup (though page reload will reset this)
+      setIsLoggingOut(false);
     }
   };
 
@@ -90,22 +91,20 @@ export const Navigation = () => {
       <nav className="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-10">
         <div className="max-w-screen-xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center space-x-2">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-xl">
-                <div className="w-10 h-10 rounded-lg flex items-center justify-center">
-                  <Image
-                    src="/sporto.ico" // Path to the logo in the public folder
-                    alt="SportOn logo"
-                    width={60} // Adjust the size as needed
-                    height={60} // Adjust the size as needed
-                    className="object-cover"
-                  />
-                </div>
+            <Link href="/" className="flex items-center space-x-2">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center">
+                <Image
+                  src="/sporto.ico"
+                  alt="SportOn logo"
+                  width={60}
+                  height={60}
+                  className="object-cover"
+                />
+              </div>
+              <span className="font-bold text-xl text-gray-900 dark:text-white">
+                SportOn
               </span>
-            </div>
-            <span className="font-bold text-xl text-gray-900 dark:text-white">
-              SportOn
-            </span>
+            </Link>
           </div>
           <div className="hidden md:flex space-x-8">
             {["Home", "Tournaments", "Courts", "Community", "Players"].map(
@@ -154,7 +153,7 @@ export const Navigation = () => {
                   variant="outline"
                   className="border-indigo-600 text-indigo-600 hover:bg-indigo-50 dark:border-indigo-400 dark:text-indigo-400 dark:hover:bg-gray-700"
                   onClick={handleLogout}
-                  disabled={isLoggingOut} // Disable button during logout
+                  disabled={isLoggingOut}
                 >
                   Logout
                 </Button>
@@ -180,7 +179,6 @@ export const Navigation = () => {
         </div>
       </nav>
 
-      {/* Loading Popup */}
       {isLoggingOut && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-xl flex items-center space-x-3">
