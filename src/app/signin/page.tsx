@@ -1,3 +1,4 @@
+// src/app/signin/page.tsx
 "use client";
 
 import { useState } from "react";
@@ -37,7 +38,7 @@ export default function SignIn() {
 
       if (data.user) {
         console.log("User signed in:", data.user);
-        router.push("/"); // Redirect to homepage after successful sign-in
+        router.push("/");
       }
     } catch (err: unknown) {
       const errorMessage =
