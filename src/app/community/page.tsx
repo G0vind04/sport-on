@@ -1,8 +1,8 @@
-// src/app/community/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabase";
+import { useRouter } from "next/navigation"; // Import useRouter
 import { Navigation } from "../../components/Navigation";
 import { Footer } from "../../components/Footer";
 import { Card, CardContent } from "../../components/ui/card";
@@ -30,6 +30,7 @@ export default function Community() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [isLoadingPosts, setIsLoadingPosts] = useState(true);
+  const router = useRouter(); // Initialize router
 
   useEffect(() => {
     const fetchPostsAndProfiles = async () => {
@@ -62,7 +63,6 @@ export default function Community() {
             };
           }) || [];
 
-        console.log("Fetched initial posts with profiles:", transformedPosts);
         setPosts(transformedPosts);
       } catch (err) {
         const errorMessage =
@@ -82,8 +82,6 @@ export default function Community() {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "posts" },
         async (payload) => {
-          console.log("Realtime event received:", payload);
-
           const newPost = payload.new as {
             id: number;
             user_id: string;
@@ -108,16 +106,12 @@ export default function Community() {
             user_avatar: profileData?.avatar_url || null,
           };
 
-          console.log("Adding new post to state:", enrichedPost);
           setPosts((currentPosts) => [enrichedPost, ...currentPosts]);
         }
       )
-      .subscribe((status) => {
-        console.log("Subscription status:", status);
-      });
+      .subscribe();
 
     return () => {
-      console.log("Unsubscribing from real-time updates");
       subscription.unsubscribe();
     };
   }, []);
@@ -341,7 +335,8 @@ export default function Community() {
               {posts.map((post) => (
                 <Card
                   key={post.id}
-                  className="border-0 shadow-lg bg-white dark:bg-gray-800 rounded-xl overflow-hidden"
+                  className="border-0 shadow-lg bg-white dark:bg-gray-800 rounded-xl overflow-hidden cursor-pointer hover:shadow-xl transition-shadow duration-200"
+                  onClick={() => router.push(`/community/${post.id}`)} // Navigate to post overview
                 >
                   <CardContent className="p-6">
                     <div className="flex items-start space-x-4">
@@ -385,7 +380,10 @@ export default function Community() {
                           </div>
                         )}
                         <div className="mt-4 flex space-x-4">
-                          <button className="text-gray-500 dark:text-gray-400 flex items-center hover:text-indigo-600 dark:hover:text-indigo-400">
+                          <button
+                            className="text-gray-500 dark:text-gray-400 flex items-center hover:text-indigo-600 dark:hover:text-indigo-400"
+                            onClick={(e) => e.stopPropagation()} // Prevent navigation when clicking Reply
+                          >
                             <MessageSquare className="w-4 h-4 mr-1" />
                             <span className="text-sm">Reply</span>
                           </button>
