@@ -1,8 +1,9 @@
+// src/app/community/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabase";
-import { useRouter } from "next/navigation"; // Import useRouter
+import { useRouter } from "next/navigation";
 import { Navigation } from "../../components/Navigation";
 import { Footer } from "../../components/Footer";
 import { Card, CardContent } from "../../components/ui/card";
@@ -11,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Send, AlertCircle, MessageSquare, Calendar, X } from "lucide-react";
 import Image from "next/image";
+import { ReplyPopup } from "../../components/ReplyPopup"; // Import the popup
 
 type Post = {
   id: number;
@@ -30,7 +32,8 @@ export default function Community() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [isLoadingPosts, setIsLoadingPosts] = useState(true);
-  const router = useRouter(); // Initialize router
+  const [selectedPostId, setSelectedPostId] = useState<number | null>(null); // Track popup state
+  const router = useRouter();
 
   useEffect(() => {
     const fetchPostsAndProfiles = async () => {
@@ -336,7 +339,7 @@ export default function Community() {
                 <Card
                   key={post.id}
                   className="border-0 shadow-lg bg-white dark:bg-gray-800 rounded-xl overflow-hidden cursor-pointer hover:shadow-xl transition-shadow duration-200"
-                  onClick={() => router.push(`/community/${post.id}`)} // Navigate to post overview
+                  onClick={() => router.push(`/community/${post.id}`)}
                 >
                   <CardContent className="p-6">
                     <div className="flex items-start space-x-4">
@@ -382,7 +385,10 @@ export default function Community() {
                         <div className="mt-4 flex space-x-4">
                           <button
                             className="text-gray-500 dark:text-gray-400 flex items-center hover:text-indigo-600 dark:hover:text-indigo-400"
-                            onClick={(e) => e.stopPropagation()} // Prevent navigation when clicking Reply
+                            onClick={(e) => {
+                              e.stopPropagation(); // Prevent card navigation
+                              setSelectedPostId(post.id); // Open popup
+                            }}
                           >
                             <MessageSquare className="w-4 h-4 mr-1" />
                             <span className="text-sm">Reply</span>
@@ -398,6 +404,14 @@ export default function Community() {
         </div>
       </div>
       <Footer />
+
+      {/* Render ReplyPopup when a post is selected */}
+      {selectedPostId !== null && (
+        <ReplyPopup
+          postId={selectedPostId}
+          onClose={() => setSelectedPostId(null)}
+        />
+      )}
     </div>
   );
 }
