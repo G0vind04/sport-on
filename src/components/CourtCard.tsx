@@ -113,7 +113,7 @@ export const CourtCard = ({ court }: { court: Court }) => {
           </div>
           <div className="flex items-center justify-between mb-5">
             <span className="text-gray-900 dark:text-white font-bold text-lg">
-              {court.price_per_hour}
+              Rs. {court.price_per_hour}
             </span>
             <span className="text-gray-500 dark:text-gray-400 text-sm">
               per hour

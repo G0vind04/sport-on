@@ -22,23 +22,25 @@ import {
 import { MapPin, Clock, Phone, Trash2, AlertCircle } from "lucide-react";
 import { BookingDialog } from "../../../components/BookingDialog";
 import { BookingsList } from "../../../components/BookingList";
+import { GoogleMapEmbed } from "../../../components/GoogleMapEmbed";
 
 // Define Court type
 type Court = {
   id: number;
   name: string;
   location: string;
-  availableTimes: string[];
+  available_times: string[];
   amenities: string[];
-  pricePerHour: string;
+  price_per_hour: string;
   color: string;
   rating: number;
   reviews: number;
   description?: string;
   city?: string;
-  contactNumber?: string;
+  contact_number?: string;
   created_by?: string;
   images: string[];
+  google_maps_link?: string; // Added Google Maps link
 };
 
 // Extend type for edit form to include newImageFile
@@ -86,17 +88,18 @@ export default function CourtOverview() {
           id: courtData.id,
           name: courtData.name,
           location: courtData.location,
-          availableTimes: courtData.available_times || [],
+          available_times: courtData.available_times || [],
           amenities: courtData.amenities || [],
-          pricePerHour: courtData.price_per_hour,
+          price_per_hour: courtData.price_per_hour,
           color: courtData.color,
           rating: courtData.rating,
           reviews: courtData.reviews,
           description: courtData.description,
           city: courtData.city,
-          contactNumber: courtData.contact_number,
+          contact_number: courtData.contact_number,
           created_by: courtData.created_by,
           images: courtData.images || [],
+          google_maps_link: courtData.google_maps_link, // Fetch Google Maps link
         };
 
         setCourt(court);
@@ -170,7 +173,7 @@ export default function CourtOverview() {
       setLoading(false);
       return;
     }
-    if (!editCourt.pricePerHour) {
+    if (!editCourt.price_per_hour) {
       setError("Price per hour is required.");
       setLoading(false);
       return;
@@ -199,20 +202,24 @@ export default function CourtOverview() {
         id: court!.id,
         name: editCourt.name || court!.name,
         location: editCourt.location || court!.location,
-        availableTimes: editCourt.availableTimes || court!.availableTimes,
+        available_times: editCourt.available_times || court!.available_times,
         amenities: editCourt.amenities || court!.amenities,
-        pricePerHour: editCourt.pricePerHour || court!.pricePerHour,
+        price_per_hour: editCourt.price_per_hour || court!.price_per_hour,
         color: editCourt.color || court!.color,
         rating: court!.rating,
         reviews: court!.reviews,
         description: editCourt.description || court!.description,
         city: editCourt.city !== undefined ? editCourt.city : court!.city,
-        contactNumber:
-          editCourt.contactNumber !== undefined
-            ? editCourt.contactNumber
-            : court!.contactNumber,
+        contact_number:
+          editCourt.contact_number !== undefined
+            ? editCourt.contact_number
+            : court!.contact_number,
         created_by: court!.created_by,
         images: imageUrl ? [imageUrl] : editCourt.images || court!.images,
+        google_maps_link:
+          editCourt.google_maps_link !== undefined
+            ? editCourt.google_maps_link
+            : court!.google_maps_link, // Preserve or update Google Maps link
       };
 
       const { error: updateError } = await supabase
@@ -289,7 +296,7 @@ export default function CourtOverview() {
   }
 
   const canEditOrDelete = currentUserId && court.created_by === currentUserId;
-  const availableTimesToday = court.availableTimes.filter(
+  const availableTimesToday = court.available_times.filter(
     (time) => !bookedTimes.has(time)
   );
 
@@ -424,18 +431,18 @@ export default function CourtOverview() {
                         </div>
                         <div className="space-y-2">
                           <Label
-                            htmlFor="pricePerHour"
+                            htmlFor="price_per_hour"
                             className="text-gray-700 dark:text-gray-200"
                           >
                             Price Per Hour
                           </Label>
                           <Input
-                            id="pricePerHour"
-                            value={editCourt.pricePerHour || ""}
+                            id="price_per_hour"
+                            value={editCourt.price_per_hour || ""}
                             onChange={(e) =>
                               setEditCourt({
                                 ...editCourt,
-                                pricePerHour: e.target.value,
+                                price_per_hour: e.target.value,
                               })
                             }
                             className="bg-gray-50 dark:bg-gray-700"
@@ -451,11 +458,11 @@ export default function CourtOverview() {
                           </Label>
                           <Input
                             id="availableTimes"
-                            value={editCourt.availableTimes?.join(", ") || ""}
+                            value={editCourt.available_times?.join(", ") || ""}
                             onChange={(e) =>
                               setEditCourt({
                                 ...editCourt,
-                                availableTimes: e.target.value
+                                available_times: e.target.value
                                   .split(",")
                                   .map((t) => t.trim()),
                               })
@@ -506,20 +513,40 @@ export default function CourtOverview() {
                         </div>
                         <div className="space-y-2">
                           <Label
-                            htmlFor="contactNumber"
+                            htmlFor="contact_number"
                             className="text-gray-700 dark:text-gray-200"
                           >
                             Contact Number
                           </Label>
                           <Input
-                            id="contactNumber"
-                            value={editCourt.contactNumber || ""}
+                            id="contact_number"
+                            value={editCourt.contact_number || ""}
                             onChange={(e) =>
                               setEditCourt({
                                 ...editCourt,
-                                contactNumber: e.target.value,
+                                contact_number: e.target.value,
                               })
                             }
+                            className="bg-gray-50 dark:bg-gray-700"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label
+                            htmlFor="googleMapsLink"
+                            className="text-gray-700 dark:text-gray-200"
+                          >
+                            Google Maps Link
+                          </Label>
+                          <Input
+                            id="googleMapsLink"
+                            value={editCourt.google_maps_link || ""}
+                            onChange={(e) =>
+                              setEditCourt({
+                                ...editCourt,
+                                google_maps_link: e.target.value,
+                              })
+                            }
+                            placeholder="e.g., https://maps.google.com/?q=40.7128,-74.0060"
                             className="bg-gray-50 dark:bg-gray-700"
                           />
                         </div>
@@ -583,23 +610,31 @@ export default function CourtOverview() {
               <MapPin className="w-5 h-5 mr-2 text-gray-500 dark:text-gray-400" />
               {court.location}, {court.city}
             </div>
-            {court.contactNumber && (
+            {court.contact_number && (
               <div className="flex items-center text-gray-600 dark:text-gray-300 mb-4">
                 <Phone className="w-5 h-5 mr-2 text-gray-500 dark:text-gray-400" />
-                {court.contactNumber}
+                {court.contact_number}
               </div>
             )}
             <p className="text-gray-700 dark:text-gray-200 mb-6">
               {court.description || "No description available."}
             </p>
 
+            {/* Google Maps Embed */}
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                Location Map
+              </h2>
+              <GoogleMapEmbed googleMapsLink={court.google_maps_link} />
+            </div>
+
             <div className="mb-6">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
                 Available Times
               </h2>
               <div className="flex flex-wrap gap-2">
-                {court.availableTimes.length > 0 ? (
-                  court.availableTimes.map((time, index) => (
+                {court.available_times.length > 0 ? (
+                  court.available_times.map((time, index) => (
                     <Badge
                       key={index}
                       variant="outline"
@@ -656,7 +691,7 @@ export default function CourtOverview() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <span className="text-gray-900 dark:text-white font-bold text-2xl">
-                  {court.pricePerHour}
+                  Rs. {court.price_per_hour}
                 </span>
                 <span className="text-gray-500 dark:text-gray-400 text-sm ml-2">
                   per hour

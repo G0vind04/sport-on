@@ -34,7 +34,8 @@ type Court = {
   city?: string;
   contact_number?: string;
   created_by?: string;
-  images: string[]; // New field for image URLs
+  images: string[];
+  google_maps_link?: string; // New field for Google Maps link
 };
 
 export default function Courts() {
@@ -55,7 +56,8 @@ export default function Courts() {
     pricePerHour: "",
     color: "#4B5EAA",
     contactNumber: "",
-    images: [] as File[], // Store files temporarily
+    images: [] as File[],
+    googleMapsLink: "", // New field for Google Maps link
   });
 
   useEffect(() => {
@@ -128,7 +130,7 @@ export default function Courts() {
       for (const image of newCourt.images) {
         const fileName = `${userData.user.id}/${Date.now()}-${image.name}`;
         const { data: uploadData, error: uploadError } = await supabase.storage
-          .from("court-images") // Create this bucket in Supabase Storage
+          .from("court-images")
           .upload(fileName, image);
 
         if (uploadError) {
@@ -162,7 +164,8 @@ export default function Courts() {
         reviews: 0,
         contact_number: newCourt.contactNumber,
         created_by: userData.user.id,
-        images: imageUrls, // Save image URLs
+        images: imageUrls,
+        google_maps_link: newCourt.googleMapsLink, // Insert Google Maps link
       });
 
       if (insertError) {
@@ -181,6 +184,7 @@ export default function Courts() {
         color: "#4B5EAA",
         contactNumber: "",
         images: [],
+        googleMapsLink: "", // Reset Google Maps link
       });
     } catch (err: unknown) {
       const errorMessage =
@@ -199,7 +203,13 @@ export default function Courts() {
       court.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
       court.city?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (court.contact_number &&
-        court.contact_number.toLowerCase().includes(searchQuery.toLowerCase()));
+        court.contact_number
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase())) ||
+      (court.google_maps_link &&
+        court.google_maps_link
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase())); // Include in search
 
     return matchesSearch;
   });
@@ -403,6 +413,27 @@ export default function Courts() {
                       placeholder="e.g., +1 123-456-7890"
                       className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 rounded-lg"
                       required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="googleMapsLink"
+                      className="text-gray-700 dark:text-gray-200 font-medium"
+                    >
+                      Google Maps Link
+                    </Label>
+                    <Input
+                      id="googleMapsLink"
+                      value={newCourt.googleMapsLink}
+                      onChange={(e) =>
+                        setNewCourt({
+                          ...newCourt,
+                          googleMapsLink: e.target.value,
+                        })
+                      }
+                      placeholder="e.g., https://maps.google.com/?q=..."
+                      className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 rounded-lg"
                     />
                   </div>
 
