@@ -20,7 +20,6 @@ type BookingDialogProps = {
 };
 
 export function BookingDialog({
-  courtId,
   availableTimes,
   onBook,
 }: BookingDialogProps) {

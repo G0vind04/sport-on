@@ -129,7 +129,7 @@ export default function Courts() {
       const imageUrls: string[] = [];
       for (const image of newCourt.images) {
         const fileName = `${userData.user.id}/${Date.now()}-${image.name}`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
           .from("court-images")
           .upload(fileName, image);
 
