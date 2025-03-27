@@ -101,11 +101,15 @@ export default function Profile() {
             "Failed to fetch registered tournaments: " + regError.message
           );
         }
+
+        // Fix: Use .flatMap() to correctly extract tournaments
         const registered =
-          (regData as { tournaments: Tournament }[])?.map(
+          (regData as { tournaments: Tournament[] }[])?.flatMap(
             (r) => r.tournaments
           ) || [];
+
         setRegisteredTournaments(registered);
+
 
         // Fetch courts
         const { data: courtData, error: courtError } = await supabase

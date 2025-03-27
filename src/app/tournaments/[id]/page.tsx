@@ -52,7 +52,7 @@ type EditTournament = Partial<Tournament> & { newImageFile?: File | null };
 export default function TournamentOverview({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>; // Correct type definition for Next.js
 }) {
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
@@ -63,12 +63,31 @@ export default function TournamentOverview({
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editTournament, setEditTournament] = useState<EditTournament>({});
   const [isDeleting, setIsDeleting] = useState(false);
+  const [resolvedParams, setResolvedParams] = useState<{ id: string } | null>(
+    null
+  );
   const router = useRouter();
 
+  // Resolve the params Promise
   useEffect(() => {
+    params
+      .then((resolved) => {
+        setResolvedParams(resolved);
+      })
+      .catch((err) => {
+        console.error("Failed to resolve params:", err);
+        setError("Failed to load tournament ID");
+        setLoading(false);
+      });
+  }, [params]);
+
+  // Fetch tournament data once params are resolved
+  useEffect(() => {
+    if (!resolvedParams) return;
+
     const fetchTournamentAndRegistrations = async () => {
       setLoading(true);
-      const tournamentId = params.id;
+      const tournamentId = resolvedParams.id;
 
       // Check auth status
       const { data: userData, error: userError } =
@@ -164,11 +183,16 @@ export default function TournamentOverview({
     };
 
     fetchTournamentAndRegistrations();
-  }, [params.id]);
+  }, [resolvedParams]);
 
   const handleRegister = async () => {
     if (!isSignedIn || !userId) {
       setError("You must be signed in to register.");
+      return;
+    }
+
+    if (!resolvedParams) {
+      setError("Tournament ID not resolved.");
       return;
     }
 
@@ -178,7 +202,7 @@ export default function TournamentOverview({
     }
 
     try {
-      const tournamentId = parseInt(params.id);
+      const tournamentId = parseInt(resolvedParams.id);
       const { data: userData } = await supabase.auth.getUser();
       const userName = userData.user?.user_metadata?.name || "You";
 
@@ -234,7 +258,12 @@ export default function TournamentOverview({
     setLoading(true);
     setError("");
 
-    // Validate required fields
+    if (!resolvedParams) {
+      setError("Tournament ID not resolved.");
+      setLoading(false);
+      return;
+    }
+
     if (!editTournament.name) {
       setError("Tournament name is required.");
       setLoading(false);
@@ -298,7 +327,7 @@ export default function TournamentOverview({
       const { error: updateError } = await supabase
         .from("tournaments")
         .update(updatedData)
-        .eq("id", params.id);
+        .eq("id", resolvedParams.id);
 
       if (updateError) {
         throw new Error("Failed to update tournament: " + updateError.message);
@@ -321,6 +350,11 @@ export default function TournamentOverview({
   const handleDeleteTournament = async () => {
     if (!confirm("Are you sure you want to delete this tournament?")) return;
 
+    if (!resolvedParams) {
+      setError("Tournament ID not resolved.");
+      return;
+    }
+
     setIsDeleting(true);
     setError("");
 
@@ -328,7 +362,7 @@ export default function TournamentOverview({
       const { error: regDeleteError } = await supabase
         .from("registrations")
         .delete()
-        .eq("tournament_id", params.id);
+        .eq("tournament_id", resolvedParams.id);
 
       if (regDeleteError) {
         throw new Error(
@@ -339,7 +373,7 @@ export default function TournamentOverview({
       const { error: deleteError } = await supabase
         .from("tournaments")
         .delete()
-        .eq("id", params.id);
+        .eq("id", resolvedParams.id);
 
       if (deleteError) {
         throw new Error("Failed to delete tournament: " + deleteError.message);
@@ -537,7 +571,7 @@ export default function TournamentOverview({
                           </Label>
                           <Input
                             id="date"
-                            type="date" // Use type="date" for better UX
+                            type="date"
                             value={editTournament.date || ""}
                             onChange={(e) =>
                               setEditTournament({

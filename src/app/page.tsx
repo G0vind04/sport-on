@@ -12,6 +12,12 @@ import { Footer } from "../components/Footer";
 import { Button } from "../components/ui/button";
 import { Calendar, MapPin, Users, ChevronRight } from "lucide-react";
 
+export interface UserProfile {
+  name: string;
+  profile_pic?: string;
+}
+
+
 const HomePage: FC = () => {
   const tournaments = [
     {
@@ -20,10 +26,12 @@ const HomePage: FC = () => {
       description: "A local open tournament for all skill levels.",
       date: "April 10, 2025",
       location: "City Sports Complex",
-      registeredPlayers: 24,
-      maxPlayers: 32,
+      registered_players: 24, // Changed from registeredPlayers
+      max_players: 32, // Changed from maxPlayers
       color: "#4B5EAA",
       category: "Open",
+      city: "Downtown", // Added missing field
+      images: ["https://example.com/tournament-image.jpg"], // Added missing field
     },
     {
       id: 2,
@@ -31,10 +39,12 @@ const HomePage: FC = () => {
       description: "A highly competitive tournament for advanced players.",
       date: "June 12, 2025",
       location: "North End Court",
-      registeredPlayers: 16,
-      maxPlayers: 16,
+      registered_players: 16,
+      max_players: 16,
       color: "#6B46C1",
       category: "Advanced",
+      city: "Uptown",
+      images: ["https://example.com/tournament-image.jpg"],
     },
     {
       id: 3,
@@ -42,43 +52,43 @@ const HomePage: FC = () => {
       description: "Join the community league for casual and fun matches.",
       date: "July 15, 2025",
       location: "Downtown Recreation Center",
-      registeredPlayers: 18,
-      maxPlayers: 40,
+      registered_players: 18,
+      max_players: 40,
       color: "#2F855A",
       category: "Casual",
+      city: "Midtown",
+      images: ["https://example.com/tournament-image.jpg"],
     },
   ];
+
 
   const courts = [
     {
       id: 1,
       name: "City Sports Complex",
       location: "123 Park Ave, Downtown",
-      availableTimes: ["10:00 AM - 12:00 PM", "2:00 PM - 4:00 PM"],
+      available_times: ["10:00 AM - 12:00 PM", "2:00 PM - 4:00 PM"], // Changed key
       amenities: ["Showers", "Pro Shop", "Parking"],
-      pricePerHour: "$15",
+      price_per_hour: "$15", // Changed key
       color: "#2B6CB0",
       rating: 4.8,
       reviews: 124,
-      images: [
-        "https://lcemayxfkiqvquxxqaje.supabase.co/storage/v1/object/public/court-images/ec7daf4c-a924-40cb-986c-412d0c4f717b/1742818168301--a-simple--2d-yellow-star-icon-on-a-dark-purple-ba.png",
-      ], // Added images field
+      images: ["https://example.com/court-image.jpg"],
     },
     {
       id: 2,
       name: "North End Court",
       location: "456 Maple St, Uptown",
-      availableTimes: ["8:00 AM - 10:00 AM", "12:00 PM - 2:00 PM"],
+      available_times: ["8:00 AM - 10:00 AM", "12:00 PM - 2:00 PM"],
       amenities: ["Locker Room", "Cafe", "Equipment Rental"],
-      pricePerHour: "$12",
+      price_per_hour: "$12",
       color: "#9F7AEA",
       rating: 4.5,
       reviews: 86,
-      images: [
-        "https://lcemayxfkiqvquxxqaje.supabase.co/storage/v1/object/public/court-images/ec7daf4c-a924-40cb-986c-412d0c4f717b/1742818168301--a-simple--2d-yellow-star-icon-on-a-dark-purple-ba.png",
-      ], // Added images field
+      images: ["https://example.com/court-image.jpg"],
     },
   ];
+
 
   const upcomingMatches = [
     {
