@@ -193,7 +193,7 @@ const HomePage: FC = () => {
       <div className="max-w-screen-xl mx-auto px-4 py-8">
         <HeroSection />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-          <StatCard icon={Users} value="2,500+" label="Active Players" />
+          <StatCard icon={Users} value="50+" label="Active Players" />
           <StatCard icon={Calendar} value="15+" label="Tournaments Monthly" />
           <StatCard icon={MapPin} value="40+" label="Courts Available" />
         </div>
