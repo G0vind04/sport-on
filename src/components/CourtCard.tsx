@@ -14,8 +14,8 @@ type Court = {
   amenities: string[] | null | undefined;
   price_per_hour: string;
   color: string;
-  rating: number;
-  reviews: number;
+  rating: number | null;
+  reviews: number | null;
   contact_number?: string;
   images: string[]; // New field for image URLs
 };
