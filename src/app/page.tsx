@@ -13,6 +13,7 @@ import { Button } from "../components/ui/button";
 import { Calendar, MapPin, Users, ChevronRight } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { Skeleton } from "../components/ui/skeleton";
+import Link from "next/link";
 
 export interface UserProfile {
   name: string;
@@ -34,7 +35,7 @@ type Tournament = {
   images: string[];
 };
 
-// Define Court type based on your database schema
+// Define Court type based on your database schema and CourtCard
 type Court = {
   id: number;
   name: string;
@@ -43,12 +44,44 @@ type Court = {
   amenities: string[] | null;
   price_per_hour: string;
   color: string;
-  rating: number | null;
-  reviews: number | null;
+  rating: number | null; // Matches CourtCard's nullable rating
+  reviews: number;
   images: string[];
 };
 
-// Hardcoded upcoming matches (not requested to be dynamic)
+// Hardcoded courts based on provided data
+const hardcodedCourts: Court[] = [
+  {
+    id: 5,
+    name: "Banerji Memorial Club",
+    location: "G6H7+2F8, Swaraj Round N, Round North, Thrissur, Kerala 680001",
+    available_times: ["7:00am-11am", "3pm-9pm"], // Adjusted spacing for consistency
+    amenities: ["Wheel chair accessible", "Car Park", "Clean Washroom"],
+    price_per_hour: "200", // Converted to string as expected by CourtCard
+    color: "#ff0000",
+    rating: 0,
+    reviews: 0,
+    images: [
+      "https://lcemayxfkiqvquxxqaje.supabase.co/storage/v1/object/public/court-images/92f648c7-ea5e-4304-a979-6de8d6392925/1742836675129-Screenshot%202025-03-24%20224530.png",
+    ],
+  },
+  {
+    id: 6,
+    name: "Cosmos Club",
+    location: "Near, Potta Rd, NH Bye Pass, Chalakudy, Kerala 680307",
+    available_times: ["8:00am-9pm"], // Adjusted spacing
+    amenities: ["Parking Space", "Swimming pool", "Clean Washroom"],
+    price_per_hour: "100", // Converted to string
+    color: "#4B5EAA",
+    rating: 0,
+    reviews: 0,
+    images: [
+      "https://lcemayxfkiqvquxxqaje.supabase.co/storage/v1/object/public/court-images/92f648c7-ea5e-4304-a979-6de8d6392925/1742837725859-Screenshot%202025-03-24%20230510.png",
+    ],
+  },
+];
+
+// Hardcoded upcoming matches (unchanged)
 const upcomingMatches = [
   {
     id: 1,
@@ -70,13 +103,13 @@ const upcomingMatches = [
 
 const HomePage: FC = () => {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
-  const [courts, setCourts] = useState<Court[]>([]);
+  const [courts] = useState<Court[]>(hardcodedCourts); // Initialize with hardcoded data
   const [tournamentsLoading, setTournamentsLoading] = useState(true);
-  const [courtsLoading, setCourtsLoading] = useState(true);
+  const [courtsLoading] = useState(false); // No loading for hardcoded courts
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Fetch tournaments
+    // Fetch tournaments (remains dynamic)
     const fetchTournaments = async () => {
       try {
         setTournamentsLoading(true);
@@ -104,34 +137,8 @@ const HomePage: FC = () => {
       }
     };
 
-    // Fetch courts
-    const fetchCourts = async () => {
-      try {
-        setCourtsLoading(true);
-        const { data, error: courtError } = await supabase
-          .from("courts")
-          .select(
-            "id, name, location, available_times, amenities, price_per_hour, color, rating, reviews, images"
-          )
-          .order("id", { ascending: true })
-          .limit(2);
-
-        if (courtError)
-          throw new Error("Failed to fetch courts: " + courtError.message);
-        setCourts(data || []);
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : "An unexpected error occurred";
-        console.error(errorMessage);
-        setError(errorMessage);
-      } finally {
-        setCourtsLoading(false);
-      }
-    };
-
-    // Run both fetches in parallel
     fetchTournaments();
-    fetchCourts();
+    // No fetch for courts since they’re hardcoded
   }, []);
 
   // Skeleton loading components
@@ -180,8 +187,6 @@ const HomePage: FC = () => {
     );
   }
 
-  //const isLoading = tournamentsLoading || courtsLoading;
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Navigation />
@@ -198,12 +203,14 @@ const HomePage: FC = () => {
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
               Upcoming Tournaments
             </h2>
-            <Button
-              variant="ghost"
-              className="text-indigo-600 dark:text-indigo-400"
-            >
-              View All <ChevronRight className="w-4 h-4 ml-1" />
-            </Button>
+            <Link href="/tournaments">
+              <Button
+                variant="ghost"
+                className="text-indigo-600 dark:text-indigo-400"
+              >
+                View All <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
+            </Link>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {tournamentsLoading ? (
@@ -229,12 +236,14 @@ const HomePage: FC = () => {
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
               Find and Book a Court
             </h2>
-            <Button
-              variant="ghost"
-              className="text-indigo-600 dark:text-indigo-400"
-            >
-              View All <ChevronRight className="w-4 h-4 ml-1" />
-            </Button>
+            <Link href="/courts">
+              <Button
+                variant="ghost"
+                className="text-indigo-600 dark:text-indigo-400"
+              >
+                View All <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
+            </Link>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {courtsLoading ? (
